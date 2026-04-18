@@ -1,0 +1,137 @@
+{
+    "scenario_name": "db-saturation",
+    "triage": {
+        "Triage Results": {
+            "Affected Service": "Database Service",
+            "Severity Level": "P2 (High)",
+            "User Impact": "Degraded Performance/Errors",
+            "Primary Category": "Network_Error",
+            "Detected Categories": {
+                "Network_Error": 0.99
+            },
+            "Confidence Score": 0.99,
+            "Persistence": {
+                "duration": 0.0,
+                "count": 6,
+                "state": "Ongoing"
+            },
+            "Compound Scenario": null
+        },
+        "Context Metadata": {
+            "Log Template": "[ERROR] Connection refused: Unable to acquire JDBC connection from pool",
+            "Template ID": "a62d24823f41",
+            "Identifiers": {},
+            "Standard ISO Time": "2026-04-18T16:30:00"
+        },
+        "log_raw": "2026-04-18 16:30:00 [ERROR] Connection refused: Unable to acquire JDBC connection from pool"
+    },
+    "rca": {
+        "root_cause_analysis": {
+            "top_hypotheses": [
+                {
+                    "hypothesis": "Database Connection Pool Exhaustion",
+                    "total_confidence": 0.95,
+                    "breakdown": {
+                        "Log Quality": 0.4,
+                        "Time-Decay Deploy": 0.15,
+                        "Metric Anomaly": 0.3,
+                        "evidence_ids": [
+                            "LOG-a62d24823f41",
+                            "METRIC-db.active_connections",
+                            "EVENT-RECENT-DEPLOY"
+                        ],
+                        "Causality Boost": 0.1
+                    },
+                    "id": "H_RES_1",
+                    "description": "Application session leak or sudden load spike overwhelming the DB pool.",
+                    "verification_steps": [
+                        "Verify log correlation."
+                    ],
+                    "recovery_workflow": {
+                        "trigger_id": "RESTART_DB_POOL",
+                        "approval_required": true,
+                        "safety_level": "High (Manual Approval)",
+                        "action_description": "Execute Database Connection Pool Exhaustion automated recovery SOP."
+                    }
+                },
+                {
+                    "hypothesis": "Upstream Service Degradation",
+                    "total_confidence": 0.65,
+                    "breakdown": {
+                        "Log Quality": 0.4,
+                        "Time-Decay Deploy": 0.15,
+                        "Metric Anomaly": 0.0,
+                        "evidence_ids": [
+                            "LOG-a62d24823f41",
+                            "EVENT-RECENT-DEPLOY"
+                        ],
+                        "Causality Boost": 0.1
+                    },
+                    "id": "H_NET_1",
+                    "description": "External upstream dependency is slow or unreachable, causing caller-side resource starvation.",
+                    "verification_steps": [
+                        "Verify log correlation."
+                    ],
+                    "recovery_workflow": {
+                        "trigger_id": "SWITCH_STANDBY_API",
+                        "approval_required": true,
+                        "safety_level": "High (Manual Approval)",
+                        "action_description": "Execute Upstream Service Degradation automated recovery SOP."
+                    }
+                },
+                {
+                    "hypothesis": "Deploy-Induced Configuration Regression",
+                    "total_confidence": 0.65,
+                    "breakdown": {
+                        "Log Quality": 0.4,
+                        "Time-Decay Deploy": 0.15,
+                        "Metric Anomaly": 0.0,
+                        "evidence_ids": [
+                            "LOG-a62d24823f41",
+                            "EVENT-RECENT-DEPLOY"
+                        ],
+                        "Causality Boost": 0.1
+                    },
+                    "id": "H_NET_2",
+                    "description": "Recent deployment changed timeout/pool/retry settings, degrading service resilience.",
+                    "verification_steps": [
+                        "Verify log correlation."
+                    ],
+                    "recovery_workflow": {
+                        "trigger_id": "ROLLBACK_DEPLOY",
+                        "approval_required": true,
+                        "safety_level": "High (Manual Approval)",
+                        "action_description": "Execute Deploy-Induced Configuration Regression automated recovery SOP."
+                    }
+                }
+            ],
+            "hitl_status": "Awaiting Approval",
+            "analyzed_at": "2026-04-18T23:38:50.625Z",
+            "reasoning_context": "Ranked 1: 'Database Connection Pool Exhaustion' (95% conf). Reasoning: Found Log signatures matched, Highly correlated with recent deployment (<5 mins ago), Cross-verified with system metrics, Prioritized as Infrastructure Layer issue."
+        }
+    },
+    "action_plan": {
+        "action_id": "RESTART_DB_POOL",
+        "title": "Restart Database Connection Pool",
+        "target": "service/Database Service",
+        "command": "kubectl restart deployment/Database Service -n production",
+        "undo_command": "kubectl scale deployment/Database Service --replicas=0 && kubectl scale deployment/Database Service --replicas=10",
+        "blast_radius": "Medium",
+        "reversibility": "High",
+        "risk_score": 40,
+        "parameters": {
+            "service": "Database Service",
+            "prev_rev": "PREV_STABLE_01"
+        }
+    },
+    "safety_evaluation": {
+        "decision": "APPROVAL REQUIRED (Manual Review)",
+        "approval_required": true,
+        "risk_level": "Medium",
+        "slack_payload": {
+            "decision": "APPROVAL REQUIRED (Manual Review)",
+            "action": "Restart Database Connection Pool"
+        }
+    },
+    "summary": "# \ud83d\udee0\ufe0f SRE Technical Briefing (Causal Audit)\n**Incident**: a62d24823f41 | **Analyzed At**: 2026-04-18T23:38:50.625Z\n\n## \ud83d\udcca Hypothesis Ranking\n**Separation**: 29 points \u2014 Moderate (Consider alternative before acting)\n1. **Database Connection Pool Exhaustion** \u2014 High (Score: 95/100) \u2190 Leading\n2. **Upstream Service Degradation** \u2014 Medium (Score: 65/100)\n3. **Deploy-Induced Configuration Regression** \u2014 Medium (Score: 65/100)\n\n## \ud83c\udfaf Core Supportive Evidence\n[16:30:00] **Db Active Connections exceeded configured limit (450/400)**\n   - *Baseline*: 24h trailing avg | *Policy*: Saturation check\n   - *Drilldown*: [METRIC-DB_ACTIVE_CONNECTIONS](grafana://metrics?query=db.active_connections&orgId=1&from=now-1h)\n[16:30:00] **Internal DB connection failure: '2026-04-18 16:30:00 [ERROR] Connection refused: Un...'**\n   - *Occurrences*: 6x | First seen: 16:30:00 | Service: Database Service\n   - *Baseline*: N/A | *Policy*: Error signal threshold monitoring\n   - *Drilldown*: [LOG-a62d24823f41](kibana://logs/viewer?template_id=a62d24823f41&time=now-15m)\n\n## \u2696\ufe0f Conflicting / Weakening Signals\nNo weakening signals detected. Leading hypothesis is unchallenged.\n\n## \u26a1 Recovery Plan & Guardrails\n- **Recovery Trigger**: `RESTART_DB_POOL`\n- **Approval Required**: True\n- **Evidence Base**: 3 signals analyzed.\n\n---\n*Decision Support Layer (v3.1 - Causal Audit)*\n"
+}

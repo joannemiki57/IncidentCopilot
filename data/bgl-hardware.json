@@ -1,0 +1,79 @@
+{
+    "scenario_name": "bgl-hardware",
+    "triage": {
+        "Triage Results": {
+            "Affected Service": "Supercomputer Kernel/Node (BGL)",
+            "Severity Level": "P1 (Critical)",
+            "User Impact": "Critical Outage",
+            "Primary Category": "Hardware_Error",
+            "Detected Categories": {
+                "Hardware_Error": 0.9,
+                "Software_Glitch": 0.8
+            },
+            "Confidence Score": 0.9,
+            "Persistence": {
+                "duration": 0.0,
+                "count": 6,
+                "state": "Ongoing"
+            },
+            "Compound Scenario": "Scenario 3: Zombie Process \u2192 System Shutdown (HW node fault \u21d2 abnormal process termination \u21d2 cascading load)"
+        },
+        "Context Metadata": {
+            "Log Template": "R20-M0-ND-C:J15-U11 RAS KERNEL FATAL machine check exception",
+            "Template ID": "3a7fab8f90dc",
+            "Identifiers": {
+                "component": "RAS KERNEL"
+            },
+            "Standard ISO Time": "2005-06-14T10:15:23"
+        },
+        "log_raw": "2005-06-14-10.15.23.940275 R20-M0-ND-C:J15-U11 RAS KERNEL FATAL machine check exception"
+    },
+    "rca": {
+        "root_cause_analysis": {
+            "top_hypotheses": [
+                {
+                    "hypothesis": "Infrastructure Gray Failure (Node Slowdown)",
+                    "total_confidence": 0.7999999999999999,
+                    "breakdown": {
+                        "Log Quality": 0.4,
+                        "Time-Decay Deploy": 0.0,
+                        "Metric Anomaly": 0.3,
+                        "evidence_ids": [
+                            "LOG-3a7fab8f90dc",
+                            "METRIC-node.cpu.iowait"
+                        ],
+                        "Causality Boost": 0.1
+                    },
+                    "id": "H_HW_2",
+                    "description": "Partial failure where a node is alive but performing extremely slowly due to I/O bottlenecks.",
+                    "verification_steps": [
+                        "Verify log correlation."
+                    ],
+                    "recovery_workflow": {
+                        "trigger_id": "DRAIN_NODE",
+                        "approval_required": true,
+                        "safety_level": "High (Manual Approval)",
+                        "action_description": "Execute Infrastructure Gray Failure (Node Slowdown) automated recovery SOP."
+                    }
+                }
+            ],
+            "hitl_status": "Awaiting Approval",
+            "analyzed_at": "2026-04-18T23:38:50.628Z",
+            "reasoning_context": "Ranked 1: 'Infrastructure Gray Failure (Node Slowdown)' (80% conf). Reasoning: Found Log signatures matched, Cross-verified with system metrics, Prioritized as Infrastructure Layer issue."
+        }
+    },
+    "action_plan": {
+        "status": "NO_ACTION_MAPPED",
+        "message": "No runbook found for DRAIN_NODE"
+    },
+    "safety_evaluation": {
+        "decision": "APPROVAL REQUIRED (Manual Review)",
+        "approval_required": true,
+        "risk_level": "High",
+        "slack_payload": {
+            "decision": "APPROVAL REQUIRED (Manual Review)",
+            "action": "No Action Proposed"
+        }
+    },
+    "summary": "# \ud83d\udee0\ufe0f SRE Technical Briefing (Causal Audit)\n**Incident**: 3a7fab8f90dc | **Analyzed At**: 2026-04-18T23:38:50.628Z\n\n## \ud83d\udcca Hypothesis Ranking\n**Separation**: 100 points \u2014 Clear (Leading candidate is well-separated)\n1. **Infrastructure Gray Failure (Node Slowdown)** \u2014 Medium (Score: 80/100) \u2190 Leading\n\n## \ud83c\udfaf Core Supportive Evidence\n[10:15:23] **Compute Node Memory Errors rose 22.5x**\n   - *Baseline*: 24h trailing avg | *Policy*: Hardware Error Threshold\n   - *Drilldown*: [METRIC-COMPUTE_NODE_MEMORY_ERRORS](grafana://metrics?query=compute.node.memory_errors&orgId=1&from=now-1h)\n[10:15:23] **Service connection failure: '2005-06-14-10.15.23.940275 R20-M0-ND-C:J15-U11 RAS...'**\n   - *Occurrences*: 6x | First seen: 10:15:23 | Service: Supercomputer Kernel/Node (BGL)\n   - *Baseline*: N/A | *Policy*: Error signal threshold monitoring\n   - *Drilldown*: [LOG-3a7fab8f90dc](kibana://logs/viewer?template_id=3a7fab8f90dc&time=now-15m)\n\n## \u2696\ufe0f Conflicting / Weakening Signals\nNo weakening signals detected. Leading hypothesis is unchallenged.\n\n## \u26a1 Recovery Plan & Guardrails\n- **Recovery Trigger**: `DRAIN_NODE`\n- **Approval Required**: True\n- **Evidence Base**: 2 signals analyzed.\n\n---\n*Decision Support Layer (v3.1 - Causal Audit)*\n"
+}

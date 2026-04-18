@@ -1,0 +1,117 @@
+{
+  "incidentId": "inc-2026-0418-001",
+  "timestamp": "2026-04-18T10:15:30Z",
+  "sourceDataset": "synthetic",
+  "triage": {
+    "service": "Database Service",
+    "severity": "P1",
+    "severityLabel": "Critical",
+    "userImpact": "Checkout failures across all regions",
+    "impactDetail": "Customer-facing checkout flow is down. Estimated 100% of purchase attempts failing since 10:15 UTC. Approximately 15,000 users affected.",
+    "errorCategory": "Resource_Exhaustion",
+    "confidence": 0.95
+  },
+  "metadata": {
+    "logTemplate": "FATAL: DB connection pool exhausted. {*} active connections available.",
+    "identifiers": {
+      "component": "connection pool"
+    },
+    "rawLogSample": "2026-04-18 10:15:30 FATAL: DB connection pool exhausted. 0 active connections available."
+  },
+  "hypotheses": [
+    {
+      "id": "h1",
+      "title": "DB connection pool exhaustion after pool size reduction",
+      "confidence": 0.82,
+      "evidenceIds": ["e1", "e2", "e5"],
+      "reasoning": "Active connections hit configured limit immediately after deploy reduced pool_size. Latency spike correlates with saturation onset."
+    },
+    {
+      "id": "h2",
+      "title": "Config regression in latest deployment",
+      "confidence": 0.64,
+      "evidenceIds": ["e3", "e4"],
+      "reasoning": "Deploy at 10:14 changed db_pool_size from 200 to 100. Time correlation is strong but not exclusive."
+    },
+    {
+      "id": "h3",
+      "title": "Downstream dependency timeout cascade",
+      "confidence": 0.51,
+      "evidenceIds": ["e4"],
+      "reasoning": "Recommendation-service latency rose 3x, potentially holding DB connections longer."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "e1",
+      "text": "DB active connections reached configured limit of 100",
+      "sourceLogLine": 142,
+      "sourceLogSnippet": "2026-04-18 10:15:28 WARN db.pool: active=100/100 queued=47",
+      "timestamp": "2026-04-18T10:15:28Z"
+    },
+    {
+      "id": "e2",
+      "text": "Connection timeout errors increased 50x in 5 minutes",
+      "sourceLogLine": 89,
+      "sourceLogSnippet": "2026-04-18 10:15:30 FATAL: DB connection pool exhausted. 0 active connections available.",
+      "timestamp": "2026-04-18T10:15:30Z"
+    },
+    {
+      "id": "e3",
+      "text": "Latest deploy at 10:14:22 changed db_pool_size from 200 to 100",
+      "sourceLogLine": 3,
+      "sourceLogSnippet": "2026-04-18 10:14:22 INFO deploy: applied config diff -db_pool_size=200 +db_pool_size=100",
+      "timestamp": "2026-04-18T10:14:22Z"
+    },
+    {
+      "id": "e4",
+      "text": "Recommendation-service response time rose 3x after deploy",
+      "sourceLogLine": 201,
+      "sourceLogSnippet": "2026-04-18 10:14:45 WARN http.client: recommendation-service p95=450ms (baseline 150ms)",
+      "timestamp": "2026-04-18T10:14:45Z"
+    },
+    {
+      "id": "e5",
+      "text": "Checkout latency P99 rose from 120ms to 4200ms",
+      "sourceLogLine": 178,
+      "sourceLogSnippet": "2026-04-18 10:15:10 INFO metrics: checkout p99=4200ms (baseline 120ms)",
+      "timestamp": "2026-04-18T10:15:10Z"
+    }
+  ],
+  "actionPlan": [
+    {
+      "id": "a1",
+      "action": "Rollback latest deployment to restore pool_size=200",
+      "urgency": "immediate",
+      "risk": "low",
+      "rationale": "Config change directly correlated with symptom onset. Rollback is well-tested path."
+    },
+    {
+      "id": "a2",
+      "action": "Check DB pool saturation via monitoring dashboard",
+      "urgency": "immediate",
+      "risk": "none",
+      "rationale": "Confirm saturation is current root cause vs cascading effect."
+    },
+    {
+      "id": "a3",
+      "action": "Restart unhealthy application pods to release stuck connections",
+      "urgency": "verify",
+      "risk": "low"
+    },
+    {
+      "id": "a4",
+      "action": "Disable recommendation-service feature flag to reduce load",
+      "urgency": "followup",
+      "risk": "medium",
+      "rationale": "Secondary mitigation if rollback alone is insufficient."
+    }
+  ],
+  "executiveSummary": {
+    "headline": "Checkout failures likely stem from database saturation immediately after the latest deployment",
+    "impact": "100% of checkout attempts failing across all regions since 10:15 UTC. Approximately 15,000 users affected over a 12-minute window.",
+    "suspectedCause": "Deploy at 10:14 reduced DB connection pool size from 200 to 100. Under normal peak traffic this threshold was insufficient, causing immediate saturation.",
+    "mitigations": "Immediate rollback of the deploy. Temporary pool size increase to 300 during recovery. Monitoring dashboard alert review for similar blind spots.",
+    "prevention": "Add pre-deploy config validation for resource thresholds. Implement gradual traffic ramp on deploy. Add pool saturation alerting at 80% threshold. Postmortem scheduled for tomorrow 10:00 UTC."
+  }
+}

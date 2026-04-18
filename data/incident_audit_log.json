@@ -1,0 +1,12 @@
+[
+    {
+        "timestamp": "2026-04-18T17:33:43.645013",
+        "incident_id": "e095585079c9",
+        "action": "Restart Database Connection Pool",
+        "command": "kubectl restart deployment/Database Service -n production",
+        "target": "service/Database Service",
+        "risk_score": 40,
+        "outcome": "UNDO_TRIGGERED",
+        "detail": "Action caused degradation. Reverting with: `kubectl scale deployment/Database Service --replicas=0 && kubectl scale deployment/Database Service --replicas=10`"
+    }
+]

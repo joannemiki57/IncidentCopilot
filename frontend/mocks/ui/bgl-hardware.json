@@ -1,0 +1,103 @@
+{
+  "incidentId": "inc-2026-0418-003",
+  "timestamp": "2026-04-18T10:18:42Z",
+  "sourceDataset": "BGL",
+  "triage": {
+    "service": "Supercomputer Kernel/Node (BGL)",
+    "severity": "P2",
+    "severityLabel": "High",
+    "userImpact": "Compute node degraded, workload rescheduled",
+    "impactDetail": "Node R02-M1-N0 showing intermittent parity errors. Running workload migrated to healthy nodes.",
+    "errorCategory": "Hardware_Error",
+    "confidence": 0.9
+  },
+  "metadata": {
+    "logTemplate": "R{*}-M{*}-N{*}-C:J{*}-U{*} RAS KERNEL INFO instruction cache parity error corrected",
+    "identifiers": {
+      "component": "R02-M1-N0 kernel"
+    },
+    "rawLogSample": "- 1117838570 2005.06.03 R02-M1-N0-C:J12-U11 2005-06-03-15.42.50.675872 R02-M1-N0-C:J12-U11 RAS KERNEL INFO instruction cache parity error corrected"
+  },
+  "hypotheses": [
+    {
+      "id": "h1",
+      "title": "Memory module degradation on node R02-M1-N0",
+      "confidence": 0.71,
+      "evidenceIds": ["e1", "e2"],
+      "reasoning": "Repeated parity errors localized to the same physical address range suggest cell-level degradation rather than random transient upset."
+    },
+    {
+      "id": "h2",
+      "title": "Cosmic ray induced transient bit flip",
+      "confidence": 0.48,
+      "evidenceIds": ["e1"],
+      "reasoning": "Single-event upsets are common at supercomputer scale and can produce isolated parity errors without any underlying hardware defect."
+    },
+    {
+      "id": "h3",
+      "title": "Thermal stress from adjacent high-utilization node",
+      "confidence": 0.35,
+      "evidenceIds": ["e3"],
+      "reasoning": "Sustained high utilization on the neighbor node could raise local ambient temperature enough to destabilize nearby memory cells."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "e1",
+      "text": "Instruction cache parity error corrected on R02-M1-N0 (ECC recovered)",
+      "sourceLogLine": 7,
+      "sourceLogSnippet": "- 1117838570 2005.06.03 R02-M1-N0-C:J12-U11 2005-06-03-15.42.50.675872 R02-M1-N0-C:J12-U11 RAS KERNEL INFO instruction cache parity error corrected",
+      "timestamp": "2026-04-18T10:18:42Z"
+    },
+    {
+      "id": "e2",
+      "text": "Third parity error recorded from the same node within a 7-day window",
+      "sourceLogLine": 14,
+      "sourceLogSnippet": "2026-04-18 10:18:50 INFO ras.aggregator: R02-M1-N0 parity error (3rd occurrence in 7d window)",
+      "timestamp": "2026-04-18T10:18:50Z"
+    },
+    {
+      "id": "e3",
+      "text": "Adjacent node R02-M1-N1 sustained 85% utilization over preceding 6 hours",
+      "sourceLogLine": 22,
+      "sourceLogSnippet": "2026-04-18 04:20:00 INFO scheduler: node R02-M1-N1 util avg=0.85 window=6h",
+      "timestamp": "2026-04-18T04:20:00Z"
+    }
+  ],
+  "actionPlan": [
+    {
+      "id": "a1",
+      "action": "Quarantine node R02-M1-N0 from scheduler",
+      "urgency": "immediate",
+      "risk": "low",
+      "rationale": "Prevents additional workloads from landing on a node that is already showing repeat parity errors."
+    },
+    {
+      "id": "a2",
+      "action": "Run ECC memory diagnostic against suspected module J12-U11",
+      "urgency": "immediate",
+      "risk": "none",
+      "rationale": "Confirms whether errors localize to a specific memory module versus being distributed across the node."
+    },
+    {
+      "id": "a3",
+      "action": "Migrate any pending workloads to healthy nodes in the same rack",
+      "urgency": "verify",
+      "risk": "low"
+    },
+    {
+      "id": "a4",
+      "action": "Schedule hardware replacement window for memory module J12-U11",
+      "urgency": "followup",
+      "risk": "low",
+      "rationale": "Module replacement is the definitive fix for cell-level memory degradation; quarantine is only a temporary containment."
+    }
+  ],
+  "executiveSummary": {
+    "headline": "Repeat parity errors on R02-M1-N0 point to memory module degradation; workloads migrated, no service impact",
+    "impact": "No customer-facing impact. Single compute node quarantined from the scheduler. Running workloads migrated automatically to healthy nodes in the same rack.",
+    "suspectedCause": "Single-bit parity error was corrected by ECC, but this is the third occurrence from the same node within a seven-day window, indicating a deteriorating memory module rather than a transient cosmic-ray bit flip.",
+    "mitigations": "Node quarantined from the scheduler. ECC diagnostics queued against the suspected module to localize the fault before replacement.",
+    "prevention": "Tighten per-node parity-error frequency thresholds to quarantine earlier, schedule preventive module health checks on nodes nearing replacement age, and note that rollback is not applicable for hardware-level incidents."
+  }
+}

@@ -9,7 +9,13 @@
     "userImpact": "Checkout failures across all regions",
     "impactDetail": "Customer-facing checkout flow is down. Estimated 100% of purchase attempts failing since 10:15 UTC. Approximately 15,000 users affected.",
     "errorCategory": "Resource_Exhaustion",
-    "confidence": 0.95
+    "confidence": 0.95,
+    "compoundScenario": "Scenario 4: Retry Storm (transient network delay ⇒ client retries flood ⇒ server overwhelmed)",
+    "persistence": {
+      "duration": 720,
+      "count": 4821,
+      "state": "Ongoing"
+    }
   },
   "metadata": {
     "logTemplate": "FATAL: DB connection pool exhausted. {*} active connections available.",
@@ -24,7 +30,16 @@
       "title": "DB connection pool exhaustion after pool size reduction",
       "confidence": 0.82,
       "evidenceIds": ["e1", "e2", "e5"],
-      "reasoning": "Active connections hit configured limit immediately after deploy reduced pool_size. Latency spike correlates with saturation onset."
+      "reasoning": "Active connections hit configured limit immediately after deploy reduced pool_size. Latency spike correlates with saturation onset.",
+      "breakdown": {
+        "logQuality": 0.4,
+        "timeDecayDeploy": 0.3,
+        "metricAnomaly": 0.3
+      },
+      "safetyLevel": "High",
+      "hitlStatus": "Awaiting Approval",
+      "approvalRequired": true,
+      "triggerId": "trigger-rollback-db-pool"
     },
     {
       "id": "h2",
@@ -47,35 +62,50 @@
       "text": "DB active connections reached configured limit of 100",
       "sourceLogLine": 142,
       "sourceLogSnippet": "2026-04-18 10:15:28 WARN db.pool: active=100/100 queued=47",
-      "timestamp": "2026-04-18T10:15:28Z"
+      "timestamp": "2026-04-18T10:15:28Z",
+      "tag": "Critical",
+      "baseline": "Baseline: 45 connections",
+      "current": "Current: 100 connections",
+      "delta": "2.2x"
     },
     {
       "id": "e2",
       "text": "Connection timeout errors increased 50x in 5 minutes",
       "sourceLogLine": 89,
       "sourceLogSnippet": "2026-04-18 10:15:30 FATAL: DB connection pool exhausted. 0 active connections available.",
-      "timestamp": "2026-04-18T10:15:30Z"
+      "timestamp": "2026-04-18T10:15:30Z",
+      "tag": "Critical",
+      "delta": "50x"
     },
     {
       "id": "e3",
       "text": "Latest deploy at 10:14:22 changed db_pool_size from 200 to 100",
       "sourceLogLine": 3,
       "sourceLogSnippet": "2026-04-18 10:14:22 INFO deploy: applied config diff -db_pool_size=200 +db_pool_size=100",
-      "timestamp": "2026-04-18T10:14:22Z"
+      "timestamp": "2026-04-18T10:14:22Z",
+      "tag": "Warning"
     },
     {
       "id": "e4",
       "text": "Recommendation-service response time rose 3x after deploy",
       "sourceLogLine": 201,
       "sourceLogSnippet": "2026-04-18 10:14:45 WARN http.client: recommendation-service p95=450ms (baseline 150ms)",
-      "timestamp": "2026-04-18T10:14:45Z"
+      "timestamp": "2026-04-18T10:14:45Z",
+      "tag": "Supporting",
+      "baseline": "Baseline: 150ms",
+      "current": "Current: 450ms",
+      "delta": "3.0x"
     },
     {
       "id": "e5",
       "text": "Checkout latency P99 rose from 120ms to 4200ms",
       "sourceLogLine": 178,
       "sourceLogSnippet": "2026-04-18 10:15:10 INFO metrics: checkout p99=4200ms (baseline 120ms)",
-      "timestamp": "2026-04-18T10:15:10Z"
+      "timestamp": "2026-04-18T10:15:10Z",
+      "tag": "Critical",
+      "baseline": "Baseline: 120ms",
+      "current": "Current: 4200ms",
+      "delta": "35x"
     }
   ],
   "actionPlan": [
@@ -113,5 +143,7 @@
     "suspectedCause": "Deploy at 10:14 reduced DB connection pool size from 200 to 100. Under normal peak traffic this threshold was insufficient, causing immediate saturation.",
     "mitigations": "Immediate rollback of the deploy. Temporary pool size increase to 300 during recovery. Monitoring dashboard alert review for similar blind spots.",
     "prevention": "Add pre-deploy config validation for resource thresholds. Implement gradual traffic ramp on deploy. Add pool saturation alerting at 80% threshold. Postmortem scheduled for tomorrow 10:00 UTC."
-  }
+  },
+  "hitlStatus": "Awaiting Approval",
+  "analyzedAt": "2026-04-18T10:15:33Z"
 }

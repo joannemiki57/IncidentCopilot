@@ -17,7 +17,7 @@ export function HypothesisRanking() {
   if (isAnalyzing) return <HypothesisRankingSkeleton />
   if (!hypotheses || hypotheses.length === 0) return null
 
-  // Although the mock is already sorted descending, we sort it once more defensively to ensure consistent ordering.
+  // mock이 이미 내림차순이지만, 팀 원본이 정렬 보장을 안 할 수도 있으니 방어적으로 한 번 더.
   const sorted = [...hypotheses].sort((a, b) => b.confidence - a.confidence)
 
   return (

@@ -9,7 +9,13 @@
     "userImpact": "Data replication degraded on production cluster",
     "impactDetail": "One DataNode unreachable. Replication factor temporarily reduced. No data loss but write throughput down approximately 30%.",
     "errorCategory": "Network_Error",
-    "confidence": 0.88
+    "confidence": 0.88,
+    "compoundScenario": "Scenario 2: Network Partition (heartbeat loss ⇒ replication pipeline stall ⇒ metadata drift)",
+    "persistence": {
+      "duration": 420,
+      "count": 312,
+      "state": "Persistent"
+    }
   },
   "metadata": {
     "logTemplate": "ERROR dfs.DataNode: Connection refused from {IP}. Timeout during block replication.",
@@ -25,7 +31,16 @@
       "title": "DataNode 192.168.1.10 network partition",
       "confidence": 0.78,
       "evidenceIds": ["e1", "e2"],
-      "reasoning": "Connection refused combined with heartbeat loss pattern is more consistent with network isolation than process crash."
+      "reasoning": "Connection refused combined with heartbeat loss pattern is more consistent with network isolation than process crash.",
+      "breakdown": {
+        "logQuality": 0.35,
+        "timeDecayDeploy": 0.25,
+        "metricAnomaly": 0.4
+      },
+      "safetyLevel": "Low",
+      "hitlStatus": "Awaiting Approval",
+      "approvalRequired": true,
+      "triggerId": "trigger-decommission-datanode"
     },
     {
       "id": "h2",
@@ -48,28 +63,36 @@
       "text": "Block replication timeout after 60s on pipeline targeting 192.168.1.10",
       "sourceLogLine": 42,
       "sourceLogSnippet": "2026-04-18 10:16:05 ERROR dfs.DataNode: Connection refused from 192.168.1.10. Timeout during block replication.",
-      "timestamp": "2026-04-18T10:16:05Z"
+      "timestamp": "2026-04-18T10:16:05Z",
+      "tag": "Critical"
     },
     {
       "id": "e2",
       "text": "DataNode 192.168.1.10 heartbeat loss sustained for 92 seconds",
       "sourceLogLine": 58,
       "sourceLogSnippet": "2026-04-18 10:16:30 WARN namenode.BlockManager: no heartbeat from DN 192.168.1.10 for 92000ms",
-      "timestamp": "2026-04-18T10:16:30Z"
+      "timestamp": "2026-04-18T10:16:30Z",
+      "tag": "Critical",
+      "delta": "92s outage"
     },
     {
       "id": "e3",
       "text": "NameNode awaiting block reports from 1 of 5 DataNodes",
       "sourceLogLine": 91,
       "sourceLogSnippet": "2026-04-18 10:17:02 INFO namenode.BlockManager: awaiting block reports from 1/5 DataNodes (missing: 192.168.1.10)",
-      "timestamp": "2026-04-18T10:17:02Z"
+      "timestamp": "2026-04-18T10:17:02Z",
+      "tag": "Warning"
     },
     {
       "id": "e4",
       "text": "Disk write latency on healthy replicas rose to 180ms p95 (baseline 35ms)",
       "sourceLogLine": 134,
       "sourceLogSnippet": "2026-04-18 10:17:20 INFO metrics: dfs.write.latency p95=180ms (baseline 35ms)",
-      "timestamp": "2026-04-18T10:17:20Z"
+      "timestamp": "2026-04-18T10:17:20Z",
+      "tag": "Supporting",
+      "baseline": "Baseline: 35ms",
+      "current": "Current: 180ms",
+      "delta": "5.1x"
     }
   ],
   "actionPlan": [
@@ -107,5 +130,7 @@
     "suspectedCause": "DataNode 192.168.1.10 lost heartbeat and refused connections, most consistent with network partition isolating the node from the NameNode rather than a process crash on the node itself.",
     "mitigations": "Isolate the node from the cluster, verify underlying network reachability, and trigger re-replication of affected blocks to restore target replication factor.",
     "prevention": "Add heartbeat-loss alerting at a 30-second threshold, document the decommission runbook, and verify cluster-wide network monitoring covers all DataNode-to-NameNode paths."
-  }
+  },
+  "hitlStatus": "Awaiting Approval",
+  "analyzedAt": "2026-04-18T10:17:25Z"
 }

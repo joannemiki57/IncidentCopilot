@@ -19,8 +19,8 @@ export function EvidenceList() {
   if (isAnalyzing) return <EvidenceListSkeleton />
   if (!evidence || evidence.length === 0) return null
 
-  // If a hypothesis is selected, only the evidenceIds of that hypothesis are highlighted.
-  // No hypothesis selected → highlightedIds will be an empty Set, and isSelectionActive=false in EvidenceItem.
+  // 선택된 가설이 있으면 그 가설의 evidenceIds 만 강조 대상.
+  // 선택된 가설 없음 → highlightedIds 가 빈 Set 이고, EvidenceItem 에서 isSelectionActive=false 로 흐르게 된다.
   const selectedHypothesis = hypotheses?.find(
     (h) => h.id === selectedHypothesisId
   )
@@ -45,8 +45,8 @@ export function EvidenceList() {
             <EvidenceItem
               key={item.id}
               evidence={item}
-              // If no selection, all items are in the default state (not forced to isHighlighted=true).
-              // If selected, only the evidence pointed to by that hypothesis is true.
+              // 선택 없으면 전부 기본 상태 (isHighlighted=true 로 강제하지 않음).
+              // 선택 있으면 그 가설이 가리키는 evidence 만 true.
               isHighlighted={!isSelectionActive || highlightedIds.has(item.id)}
               isSelectionActive={isSelectionActive}
             />

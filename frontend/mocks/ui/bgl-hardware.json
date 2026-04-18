@@ -9,7 +9,13 @@
     "userImpact": "Compute node degraded, workload rescheduled",
     "impactDetail": "Node R02-M1-N0 showing intermittent parity errors. Running workload migrated to healthy nodes.",
     "errorCategory": "Hardware_Error",
-    "confidence": 0.9
+    "confidence": 0.9,
+    "compoundScenario": "Scenario 7: Hardware Degradation (repeat ECC-corrected parity ⇒ module cell wear ⇒ quarantine before uncorrectable fault)",
+    "persistence": {
+      "duration": 604800,
+      "count": 3,
+      "state": "Transient"
+    }
   },
   "metadata": {
     "logTemplate": "R{*}-M{*}-N{*}-C:J{*}-U{*} RAS KERNEL INFO instruction cache parity error corrected",
@@ -24,7 +30,16 @@
       "title": "Memory module degradation on node R02-M1-N0",
       "confidence": 0.71,
       "evidenceIds": ["e1", "e2"],
-      "reasoning": "Repeated parity errors localized to the same physical address range suggest cell-level degradation rather than random transient upset."
+      "reasoning": "Repeated parity errors localized to the same physical address range suggest cell-level degradation rather than random transient upset.",
+      "breakdown": {
+        "logQuality": 0.5,
+        "timeDecayDeploy": 0.1,
+        "metricAnomaly": 0.4
+      },
+      "safetyLevel": "Low",
+      "hitlStatus": "Awaiting Approval",
+      "approvalRequired": true,
+      "triggerId": "trigger-quarantine-node"
     },
     {
       "id": "h2",
@@ -47,21 +62,27 @@
       "text": "Instruction cache parity error corrected on R02-M1-N0 (ECC recovered)",
       "sourceLogLine": 7,
       "sourceLogSnippet": "- 1117838570 2005.06.03 R02-M1-N0-C:J12-U11 2005-06-03-15.42.50.675872 R02-M1-N0-C:J12-U11 RAS KERNEL INFO instruction cache parity error corrected",
-      "timestamp": "2026-04-18T10:18:42Z"
+      "timestamp": "2026-04-18T10:18:42Z",
+      "tag": "Warning"
     },
     {
       "id": "e2",
       "text": "Third parity error recorded from the same node within a 7-day window",
       "sourceLogLine": 14,
       "sourceLogSnippet": "2026-04-18 10:18:50 INFO ras.aggregator: R02-M1-N0 parity error (3rd occurrence in 7d window)",
-      "timestamp": "2026-04-18T10:18:50Z"
+      "timestamp": "2026-04-18T10:18:50Z",
+      "tag": "Critical",
+      "baseline": "Baseline: 0/week",
+      "current": "Current: 3/week",
+      "delta": "3x"
     },
     {
       "id": "e3",
       "text": "Adjacent node R02-M1-N1 sustained 85% utilization over preceding 6 hours",
       "sourceLogLine": 22,
       "sourceLogSnippet": "2026-04-18 04:20:00 INFO scheduler: node R02-M1-N1 util avg=0.85 window=6h",
-      "timestamp": "2026-04-18T04:20:00Z"
+      "timestamp": "2026-04-18T04:20:00Z",
+      "tag": "Supporting"
     }
   ],
   "actionPlan": [
@@ -99,5 +120,7 @@
     "suspectedCause": "Single-bit parity error was corrected by ECC, but this is the third occurrence from the same node within a seven-day window, indicating a deteriorating memory module rather than a transient cosmic-ray bit flip.",
     "mitigations": "Node quarantined from the scheduler. ECC diagnostics queued against the suspected module to localize the fault before replacement.",
     "prevention": "Tighten per-node parity-error frequency thresholds to quarantine earlier, schedule preventive module health checks on nodes nearing replacement age, and note that rollback is not applicable for hardware-level incidents."
-  }
+  },
+  "hitlStatus": "Awaiting Approval",
+  "analyzedAt": "2026-04-18T10:18:55Z"
 }

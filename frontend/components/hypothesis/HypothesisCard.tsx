@@ -24,9 +24,9 @@ export function HypothesisCard({
   const percentage = Math.round(hypothesis.confidence * 100)
 
   const handleClick = () => {
-    // Click the same card again → deselects it. Click another card → switches to that ID.
-    // Although the store's selectHypothesis already contains toggle logic,
-    // we explicitly declare the intent at the UI layer as well.
+    // 같은 카드 다시 클릭 → 선택 해제. 다른 카드 → 그 id로 교체.
+    // 스토어 쪽 selectHypothesis 가 이미 토글 로직을 갖고 있지만,
+    // UI 레이어에서도 명시적으로 의도를 드러내둔다.
     selectHypothesis(isSelected ? null : hypothesis.id)
   }
 
@@ -51,7 +51,7 @@ export function HypothesisCard({
       }`}
     >
       <div className="flex items-start gap-4">
-        {/* Rank number on the left — only the top rank is emphasized in indigo, others in light slate */}
+        {/* 좌측 순위 번호 — 1순위만 indigo로 강조, 나머지는 연한 slate */}
         <div className="flex-shrink-0">
           <div
             className={`text-3xl font-light ${
@@ -68,7 +68,7 @@ export function HypothesisCard({
             {hypothesis.title}
           </h4>
 
-          {/* Pure div-based progress bar. Lightweight and flicker-free compared to external libraries. */}
+          {/* 순수 div 기반 progress bar. recharts 대비 가볍고 깜빡임 없음 */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
@@ -104,6 +104,66 @@ export function HypothesisCard({
           </p>
         </div>
       )}
+
+      {/* 선택된 상태 + breakdown 값이 있을 때만 신뢰도 근거를 풀어서 보여준다.
+          각 항목 weight 는 현재 팀 스코어러 기준으로 고정값 — 스코어러가 바뀌면 여기 같이 손봐야 한다. */}
+      {isSelected && hypothesis.breakdown && (
+        <div className="mt-4 pt-4 border-t border-indigo-200">
+          <div className="text-xs font-medium text-indigo-900 uppercase tracking-wide mb-3">
+            Confidence breakdown
+          </div>
+          <div className="space-y-2">
+            <BreakdownRow
+              label="Log pattern match"
+              value={hypothesis.breakdown.logQuality}
+              weight={0.4}
+            />
+            <BreakdownRow
+              label="Time-decay deploy correlation"
+              value={hypothesis.breakdown.timeDecayDeploy}
+              weight={0.3}
+            />
+            <BreakdownRow
+              label="Metric anomaly"
+              value={hypothesis.breakdown.metricAnomaly}
+              weight={0.3}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BreakdownRow({
+  label,
+  value,
+  weight,
+}: {
+  label: string
+  value: number
+  weight: number
+}) {
+  const percentage = Math.round(value * 100)
+  return (
+    <div>
+      <div className="flex justify-between items-baseline mb-1 text-xs">
+        <span className="text-slate-600">
+          {label}{" "}
+          <span className="text-slate-400">
+            (weight {Math.round(weight * 100)}%)
+          </span>
+        </span>
+        <span className="font-medium text-slate-700 tabular-nums">
+          {percentage}%
+        </span>
+      </div>
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
     </div>
   )
 }

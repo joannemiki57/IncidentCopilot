@@ -1,6 +1,8 @@
 import LogInput from "@/components/shared/LogInput"
+import { ActionPlan } from "@/components/action/ActionPlan"
 import { EvidenceList } from "@/components/evidence/EvidenceList"
 import { HypothesisRanking } from "@/components/hypothesis/HypothesisRanking"
+import { ExecutiveSummary } from "@/components/summary/ExecutiveSummary"
 import { TriageCard } from "@/components/triage/TriageCard"
 
 export default function Home() {
@@ -18,6 +20,8 @@ export default function Home() {
         <TriageCard />
         <HypothesisRanking />
         <EvidenceList />
+        <ActionPlan />
+        <ExecutiveSummary />
       </div>
     </main>
   )

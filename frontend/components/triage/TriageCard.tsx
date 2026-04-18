@@ -1,5 +1,7 @@
 "use client"
 
+import { AlertTriangle } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useIncidentStore } from "@/lib/store"
@@ -8,7 +10,7 @@ export function TriageCard() {
   const triage = useIncidentStore((s) => s.analysisResult?.triage)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
 
-  // If analyzing, show skeleton. If no result and in standby, skip rendering entirely.
+  // 분석 중이면 skeleton. 결과 없고 대기 상태면 렌더 자체를 생략한다.
   if (isAnalyzing) return <TriageCardSkeleton />
   if (!triage) return null
 
@@ -40,6 +42,22 @@ export function TriageCard() {
               {triage.severity} · {triage.severityLabel}
             </span>
           </div>
+
+          {/* Compound scenario 배너 — 단일 원인이 아닌 복합 시나리오일 때만 노출. */}
+          {triage.compoundScenario && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-medium text-amber-900 mb-0.5">
+                  Compound scenario detected
+                </div>
+                <div className="text-amber-800 text-xs leading-relaxed">
+                  {triage.compoundScenario}
+                </div>
+              </div>
+            </div>
+          )}
+
           <h3 className="text-lg font-medium">{triage.userImpact}</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">
             {triage.impactDetail}

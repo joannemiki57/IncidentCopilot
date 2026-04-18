@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useIncidentStore, type ScenarioHint } from "@/lib/store"
 
-// Representative log snippets for each scenario. Automatically injected into the textarea when 'Try sample' is selected.
+// 각 시나리오별 대표 로그 스니펫. Try sample 선택 시 textarea에 자동 주입된다.
 const SAMPLE_LOGS: Record<ScenarioHint, string> = {
   "db-saturation":
     "2026-04-18 10:15:30 FATAL: DB connection pool exhausted. 0 active connections available.\n2026-04-18 10:15:28 WARN db.pool: active=100/100 queued=47\n2026-04-18 10:14:22 INFO deploy: applied config diff -db_pool_size=200 +db_pool_size=100",
@@ -54,7 +54,7 @@ export default function LogInput() {
   }
 
   const handleSample = (hint: ScenarioHint) => {
-    // Fill the textarea with the scenario sample logs and immediately start the analysis with the corresponding scenarioHint.
+    // textarea에 시나리오 샘플 로그를 채우고 바로 해당 scenarioHint로 분석을 시작한다.
     setLogInput(SAMPLE_LOGS[hint])
     void analyze(hint)
   }

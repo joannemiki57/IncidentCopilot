@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { incidentAnalysisSchema } from "@/lib/schema"
 
-// scenarioHint → mock file mapping. The keys of this map are the allowed scenarioHints.
+// scenarioHint → mock 파일 매핑. 이 map의 키가 곧 허용되는 scenarioHint.
 const SCENARIO_FILES = {
   "db-saturation": "db-saturation.json",
   "hdfs-failure": "hdfs-failure.json",
@@ -38,12 +38,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  // Lenient body parsing: continue with fallback scenarioHint even if the body is malformed.
+  // body 파싱은 관대하게: 이상해도 fallback scenarioHint로 계속 진행한다.
   const rawBody: unknown = await req.json().catch(() => ({}))
   const scenarioHint = (rawBody as { scenarioHint?: unknown })?.scenarioHint
   const scenario = resolveScenario(scenarioHint)
 
-  // Artificial delay to simulate an LLM call.
+  // LLM 호출처럼 보이게 하기 위한 인공 지연.
   await sleep(ARTIFICIAL_DELAY_MS)
 
   const filePath = join(

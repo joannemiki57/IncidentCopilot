@@ -58,7 +58,10 @@ class ActionPlanEngine:
 
     def generate_plan(self, rca_result, triage_result):
         """Step 1 & 2: Mapping & Command Generation."""
-        top_h = rca_result.get("root_cause_analysis", {}).get("top_hypotheses", [{}])[0]
+        top_hypos = rca_result.get("root_cause_analysis", {}).get("top_hypotheses", [])
+        if not top_hypos:
+            return {"status": "NO_HYPOTHESIS_FOUND", "message": "No root cause candidates identified to map actions."}
+        top_h = top_hypos[0]
         trigger_id = top_h.get("recovery_workflow", {}).get("trigger_id", "UNKNOWN")
         
         # 1. Action Mapping
@@ -93,6 +96,9 @@ class ActionPlanEngine:
 
     def evaluate_safety(self, action_plan, hypothesis_confidence):
         """Step 3: Safety Guard & Approval logic."""
+        if action_plan.get("status") == "NO_HYPOTHESIS_FOUND":
+            return {"decision": "BLOCKED (No Hypothesis)", "approval_required": True, "risk_level": "Unknown"}
+
         risk = action_plan.get("risk_score", 100)
         conf = int(hypothesis_confidence * 100)
 
@@ -168,7 +174,7 @@ class ActionPlanEngine:
 
     def _generate_notification(self, plan, decision):
         # Slack/Teams payload generation logic (simplified)
-        return {"decision": decision, "action": plan["title"]}
+        return {"decision": decision, "action": plan.get("title", "No Action Proposed")}
 
 if __name__ == "__main__":
     pass

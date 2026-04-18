@@ -123,12 +123,12 @@ class AdvancedRCAEngine:
         for h in hypotheses:
             score_report = self._calculate_hybrid_score(h, triage_result, ctx)
             scored_hypotheses.append({
-                "id": h["id"],
                 "hypothesis": h["title"],
-                "total_confidence": score_report["total"],
+                "total_confidence": float(score_report["total"]),
                 "breakdown": score_report["breakdown"],
-                "recovery_trigger_id": h["recovery_trigger_id"],
+                "id": h["id"],
                 "description": h["description"],
+                "recovery_trigger_id": h["recovery_trigger_id"],
                 "verification_steps": h.get("verification_steps", ["Verify log correlation."])
             })
 
@@ -157,11 +157,9 @@ class AdvancedRCAEngine:
         return {
             "root_cause_analysis": {
                 "top_hypotheses": top_hypotheses,
-                "reasoning_context": reasoning_context,
-                "causality_layer": primary_cat,
-                "external_context_applied": list(ctx.keys()),
                 "hitl_status": "Awaiting Approval" if is_high_severity else "Auto-Executable",
-                "analyzed_at": datetime.utcnow().isoformat() + "Z"
+                "analyzed_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+                "reasoning_context": reasoning_context
             }
         }
 

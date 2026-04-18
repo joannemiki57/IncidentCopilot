@@ -549,20 +549,18 @@ def incident_triage(log_message: str, structured: dict = None, tracker: Persiste
             "Severity Level":    severity,
             "User Impact":       user_impact,
             "Primary Category":  primary_category,
-            "All Signals":       {cat: scores[cat] for cat in detected_categories},
+            "Detected Categories": {cat: scores[cat] for cat in detected_categories},
             "Confidence Score":  primary_confidence,
             "Persistence":       persistence,
+            "Compound Scenario": compound_scenario
         },
-        "Extracted Metadata": {
+        "Context Metadata": {
             "Log Template":          log_tmpl,
             "Template ID":           tmpl_id,
             "Identifiers":           identifiers,
-            "Standardized Timestamp": timestamp_iso,
+            "Standard ISO Time":      timestamp_iso,
         },
     }
-
-    if compound_scenario:
-        result["Triage Results"]["Compound_Scenario"] = compound_scenario
 
     return result
 

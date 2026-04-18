@@ -23,7 +23,7 @@ class EvidenceNormalizer:
     """v3.1 Normalizer with hypothesis-aware categorization."""
     def normalize(self, triage_result, context, top_hypotheses=None):
         evidence_graph = []
-        incident_time = triage_result.get("Extracted Metadata", {}).get("Standardized Timestamp", "Unknown")
+        incident_time = triage_result.get("Context Metadata", {}).get("Standard ISO Time", "Unknown")
         
         def get_time_str(iso_str):
             try:
@@ -106,7 +106,7 @@ class EvidenceNormalizer:
         log_raw = triage_result.get("log_raw", "")
         log_raw_lower = log_raw.lower()
         persistence = triage_result.get("Triage Results", {}).get("Persistence", {})
-        tmpl_id = triage_result.get("Extracted Metadata", {}).get("Template ID", "UNKNOWN")
+        tmpl_id = triage_result.get("Context Metadata", {}).get("Template ID", "UNKNOWN")
         affected = triage_result.get("Triage Results", {}).get("Affected Service", "Unknown")
         
         # Entity detection
@@ -191,14 +191,14 @@ class PersonaRenderer:
 
         hypo_rows = []
         for i, h in enumerate(data['top_hypotheses'], 1):
-            conf = self._get_qualitative_confidence(h.get("total_confidence", 0))
+            qual = "High" if h.get("total_confidence", 0) >= 0.85 else "Medium" if h.get("total_confidence", 0) >= 0.65 else "Low"
             score = int(h.get("total_confidence", 0) * 100)
             marker = " ← Leading" if i == 1 else ""
-            hypo_rows.append(f"{i}. **{h['hypothesis']}** — {conf} (Score: {score}/100){marker}")
+            hypo_rows.append(f"{i}. **{h['hypothesis']}** — {qual} (Score: {score}/100){marker}")
         
         ranking_section = "\n".join(hypo_rows)
 
-        # 2. Grouped Evidence with consistent formatting
+        # 2. Grouped Evidence
         support_items = [item for item in data['timeline'] if item.category == "SUPPORT"]
         weaken_items = [item for item in data['timeline'] if item.category == "WEAKEN"]
         context_items = [item for item in data['timeline'] if item.category == "CONTEXT"]
@@ -229,7 +229,7 @@ class PersonaRenderer:
 > Required: Manual blast radius assessment before executing `{data['workflow'].get('trigger_id', 'N/A')}`.
 """
 
-        return f"""# 🛠️ SRE Technical Briefing (Causal Audit)
+        report = f"""# 🛠️ SRE Technical Briefing (Causal Audit)
 **Incident**: {data['incident_id']} | **Analyzed At**: {data['analyzed_at']}
 
 ## 📊 Hypothesis Ranking
@@ -242,18 +242,15 @@ class PersonaRenderer:
 ## ⚖️ Conflicting / Weakening Signals
 {weaken_section}
 
-## 🌐 Contextual Signals
-{context_section}
-
 ## ⚡ Recovery Plan & Guardrails
 - **Recovery Trigger**: `{data['workflow'].get('trigger_id', 'N/A')}`
 - **Approval Required**: {is_blocked or data['workflow'].get('approval_required', True)}
 - **Evidence Base**: {len(data['timeline'])} signals analyzed.
 {guardline}
-
 ---
 *Decision Support Layer (v3.1 - Causal Audit)*
 """
+        return report
 
     def _fmt_item(self, item):
         """Consistent evidence rendering for all tiers."""
@@ -292,7 +289,7 @@ class ExecutiveSummaryEngine:
         evidence_graph = self.normalizer.normalize(triage_report, ctx, top_hypotheses)
         
         data = {
-            "incident_id": triage_report.get("Extracted Metadata", {}).get("Template ID", "N/A"),
+            "incident_id": triage_report.get("Context Metadata", {}).get("Template ID", "N/A"),
             "service": triage_report.get("Triage Results", {}).get("Affected Service", "Unknown"),
             "severity": triage_report.get("Triage Results", {}).get("Severity Level", "N/A"),
             "impact": triage_report.get("Triage Results", {}).get("User Impact", "N/A"),

@@ -231,21 +231,45 @@ class PersonaRenderer:
 """
 
     def render_sre(self, data):
-        # 1. Hypothesis Separation Analysis
-        top_1 = data['top_hypotheses'][0]
-        top_2 = data['top_hypotheses'][1] if len(data['top_hypotheses']) > 1 else None
+        # 1. Initialize variables for Hypothesis Separation Analysis
+        sre_report = ""
+        gap = 1.0
+        gap_pts = 100
+        gap_desc = "Single candidate (Clear separation)"
         
-        gap = (top_1['total_confidence'] - top_2['total_confidence']) if top_2 else 1.0
-        gap_pts = int(gap * 100)
-        if gap > 0.30:
-            gap_desc = "Clear (Leading candidate is well-separated)"
-        elif gap > 0.15:
-            gap_desc = "Moderate (Consider alternative before acting)"
+        # Determine Separation Stats
+        hypos = data.get('top_hypotheses', [])
+        if not hypos:
+            gap = 0.0
+            gap_pts = 0
+            gap_desc = "No hypotheses found"
+            sre_report += "\n> [!WARNING]\n> **No clear hypotheses were identified for this incident.** Manual investigation required.\n"
+        elif len(hypos) > 1:
+            top_1 = hypos[0]
+            top_2 = hypos[1]
+            gap = top_1.get('total_confidence', 0) - top_2.get('total_confidence', 0)
+            gap_pts = int(gap * 100)
+            
+            if gap > 0.30:
+                gap_desc = "Clear (Leading candidate is well-separated)"
+            elif gap > 0.15:
+                gap_desc = "Moderate (Consider alternative before acting)"
+            else:
+                gap_desc = "Ambiguous (Competing candidates — manual triage required)"
+
+            sre_report += f"\n### 📊 Hypothesis Separation Analysis\n"
+            if gap < 0.15:
+                sre_report += f"> [!CAUTION]\n> **Low Confidence Gap ({gap*100:.1f}%)**: Hypothesis H1 and H2 have similar scores. Further evidence collection needed to distinguish.\n"
+            else:
+                sre_report += f"> [!NOTE]\n> **High Confidence Gap ({gap*100:.1f}%)**: H1 is significantly more likely than H2.\n"
         else:
-            gap_desc = "Ambiguous (Competing candidates — manual triage required)"
+            # Single hypothesis
+            top_1 = hypos[0]
+            sre_report += f"\n### 📊 Single Primary Hypothesis Identified\n"
+            sre_report += f"> [!TIP]\n> Only one strong hypothesis was identified with {top_1.get('total_confidence', 0)*100:.1f}% confidence.\n"
 
         hypo_rows = []
-        for i, h in enumerate(data['top_hypotheses'], 1):
+        for i, h in enumerate(hypos, 1):
             qual = "High" if h.get("total_confidence", 0) >= 0.85 else "Medium" if h.get("total_confidence", 0) >= 0.65 else "Low"
             score = int(h.get("total_confidence", 0) * 100)
             marker = " ← Leading" if i == 1 else ""
@@ -254,9 +278,10 @@ class PersonaRenderer:
         ranking_section = "\n".join(hypo_rows)
 
         # 2. Grouped Evidence
-        support_items = [item for item in data['timeline'] if item.category == "SUPPORT"]
-        weaken_items = [item for item in data['timeline'] if item.category == "WEAKEN"]
-        context_items = [item for item in data['timeline'] if item.category == "CONTEXT"]
+        timeline = data.get('timeline', [])
+        support_items = [item for item in timeline if item.category == "SUPPORT"]
+        weaken_items = [item for item in timeline if item.category == "WEAKEN"]
+        context_items = [item for item in timeline if item.category == "CONTEXT"]
 
         support_section = "\n".join([self._fmt_item(i) for i in support_items]) or "No direct supportive evidence."
         weaken_section = "\n".join([self._fmt_item(i) for i in weaken_items]) if weaken_items else "No weakening signals detected."
@@ -267,11 +292,11 @@ class PersonaRenderer:
         if is_blocked:
             reasons = []
             if weaken_items: reasons.append(f"{len(weaken_items)} weakening signal(s)")
-            if gap <= 0.15: reasons.append(f"separation is only {gap_pts} pts")
+            if gap <= 0.15 and len(hypos) > 1: reasons.append(f"separation is only {gap_pts} pts")
             guardline = f"\n> [!CAUTION]\n> **GUARDRAIL ALERT**: Auto-remediation BLOCKED due to {', '.join(reasons)}.\n"
 
         # 4. Action Items (Postmortem Starter)
-        action_items = self._derive_action_items(data['root_cause'])
+        action_items = self._derive_action_items(data.get('root_cause', 'Unknown'))
         
         # Feature 6 Integration: Optimization Note
         optimization_note = ""

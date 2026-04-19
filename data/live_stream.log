@@ -2,3 +2,6 @@
 2026-04-18 22:18:50 ERROR: Unable to acquire JDBC connection from pool
 2026-04-18 22:19:10 ERROR: connection pool exhausted with acquire jdbc timeout
 2023-10-01 12:00:00 ERROR Test error log for notification
+2026-04-18 23:43:00 ERROR: Memory leak detected in PaymentService JVM heap space
+2026-04-18 23:43:30 ERROR: Memory leak detected in PaymentService JVM heap space
+2026-04-18 23:44:00 ERROR: Memory leak detected in PaymentService JVM heap space

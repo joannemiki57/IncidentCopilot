@@ -1,26 +1,32 @@
 {
-    "Triage Results": {
-        "Affected Service": "HDFS",
-        "Severity Level": "P2 (High)",
-        "User Impact": "Degraded Performance/Errors",
-        "Primary Category": "Network_Error",
-        "Detected Categories": {
-            "Network_Error": 0.99
-        },
-        "Confidence Score": 0.99,
-        "Persistence": {
-            "duration": 0,
-            "count": 1,
-            "state": "Transient"
-        },
-        "Compound Scenario": null
+  "log_raw": "2026-04-19 11:15:00 FATAL: Connection refused from payment-gateway.timeout: 5000ms. Retrying...",
+  "Triage Results": {
+    "Affected Service": "Unknown System",
+    "Severity Level": "P2 (High)",
+    "User Impact": "Degraded Performance/Errors",
+    "Primary Category": "Network_Error",
+    "Detected Categories": {
+      "Network_Error": 0.99
     },
-    "Context Metadata": {
-        "Log Template": "{*} {*} {*} ERROR dfs.DataNode$PacketResponder: PacketResponder {*} for block blk_123 terminates with error: Connection refused",
-        "Template ID": "831827d0ca33",
-        "Identifiers": {
-            "component": "dfs.DataNode"
-        },
-        "Standard ISO Time": "Unknown"
-    }
+    "Confidence Score": 0.99,
+    "Persistence": {
+      "duration": 0,
+      "count": 1,
+      "state": "Transient"
+    },
+    "Compound Scenario": null
+  },
+  "Context Metadata": {
+    "Log Template": "FATAL: Connection refused from payment-gateway.timeout: {*}ms. Retrying...",
+    "Template ID": "a5e78d270987",
+    "Identifiers": {
+      "metrics": [
+        {
+          "value": 5000.0,
+          "unit": "ms"
+        }
+      ]
+    },
+    "Standard ISO Time": "2026-04-19T11:15:00"
+  }
 }

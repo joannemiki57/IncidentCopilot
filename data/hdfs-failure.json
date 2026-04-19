@@ -1,6 +1,6 @@
 {
-    "scenario_name": "hdfs-failure",
-    "triage": {
+    "scenario": "hdfs-failure",
+    "feature1_triage": {
         "Triage Results": {
             "Affected Service": "HDFS",
             "Severity Level": "P2 (High)",
@@ -18,28 +18,26 @@
             "Compound Scenario": null
         },
         "Context Metadata": {
-            "Log Template": "{*} {*} {*} ERROR dfs.DataNode$PacketResponder: PacketResponder {*} for block blk_-{*} terminates with error: Connection refused",
-            "Template ID": "5027c887f9f2",
+            "Log Template": "{*} {*} {*} ERROR dfs.DataNode$PacketResponder: PacketResponder terminates with error: Connection refused",
+            "Template ID": "9666ba03d9df",
             "Identifiers": {
                 "component": "dfs.DataNode"
             },
             "Standard ISO Time": "Unknown"
-        },
-        "log_raw": "081109 203615 148 ERROR dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_-1608999687919862906 terminates with error: Connection refused"
+        }
     },
-    "rca": {
+    "feature2_rca": {
         "root_cause_analysis": {
             "top_hypotheses": [
                 {
                     "hypothesis": "Upstream Service Degradation",
-                    "total_confidence": 0.7999999999999999,
+                    "total_confidence": 0.5,
                     "breakdown": {
                         "Log Quality": 0.4,
                         "Time-Decay Deploy": 0.0,
-                        "Metric Anomaly": 0.3,
+                        "Metric Anomaly": 0.0,
                         "evidence_ids": [
-                            "LOG-5027c887f9f2",
-                            "METRIC-network.egress.error_rate"
+                            "LOG-9666ba03d9df"
                         ],
                         "Causality Boost": 0.1
                     },
@@ -63,7 +61,7 @@
                         "Time-Decay Deploy": 0.0,
                         "Metric Anomaly": 0.0,
                         "evidence_ids": [
-                            "LOG-5027c887f9f2"
+                            "LOG-9666ba03d9df"
                         ],
                         "Causality Boost": 0.1
                     },
@@ -103,32 +101,83 @@
                 }
             ],
             "hitl_status": "Awaiting Approval",
-            "analyzed_at": "2026-04-18T23:38:50.626Z",
-            "reasoning_context": "Ranked 1: 'Upstream Service Degradation' (80% conf). Reasoning: Found Log signatures matched, Cross-verified with system metrics, Prioritized as Infrastructure Layer issue."
+            "analyzed_at": "2026-04-19T02:25:50.285Z",
+            "reasoning_context": "Ranked 1: 'Upstream Service Degradation' (50% conf). Reasoning: Found Log signatures matched, Prioritized as Infrastructure Layer issue."
         }
     },
-    "action_plan": {
-        "action_id": "SWITCH_STANDBY_API",
-        "title": "Failover to Standby Upstream API",
-        "target": "gateway/HDFS-egress",
-        "command": "vault kv get secret/api/standby | terraform apply -var 'active_api=standby'",
-        "undo_command": "terraform apply -var 'active_api=primary'",
-        "blast_radius": "Large",
-        "reversibility": "Partial",
-        "risk_score": 75,
-        "parameters": {
-            "service": "HDFS",
-            "prev_rev": "PREV_STABLE_01"
+    "feature3_evidence": [
+        {
+            "evidence_id": "METRIC-NETWORK_EGRESS_ERROR_RATE",
+            "category": "SUPPORT",
+            "signal_name": "network.egress.error_rate",
+            "content": "Network Egress Error Rate rose 45.0x",
+            "observed_at": "Unknown",
+            "delta_ratio": 45.0,
+            "baseline_desc": "24h trailing avg",
+            "policy_desc": "Network Error Threshold",
+            "drilldown_url": "grafana://metrics?query=network.egress.error_rate&orgId=1&from=now-1h",
+            "aggregation_info": {},
+            "weakens_hypothesis": null
+        },
+        {
+            "evidence_id": "METRIC-DISK_IOPS",
+            "category": "WEAKEN",
+            "signal_name": "disk.iops",
+            "content": "Disk Iops remained near baseline (1.1x)",
+            "observed_at": "Unknown",
+            "delta_ratio": 1.0909090909090908,
+            "baseline_desc": "24h trailing avg",
+            "policy_desc": "Normal range",
+            "drilldown_url": "grafana://metrics?query=disk.iops&orgId=1&from=now-1h",
+            "aggregation_info": {},
+            "weakens_hypothesis": "Resource-based hypotheses (normal io)"
+        },
+        {
+            "evidence_id": "LOG-9666ba03d9df",
+            "category": "SUPPORT",
+            "signal_name": "error_log",
+            "content": "Service connection failure: '...'",
+            "observed_at": "Unknown",
+            "delta_ratio": 1.0,
+            "baseline_desc": "N/A",
+            "policy_desc": "Error signal threshold monitoring",
+            "drilldown_url": "kibana://logs/viewer?template_id=9666ba03d9df&time=now-15m",
+            "aggregation_info": {
+                "count": 1,
+                "first_seen": "Unknown",
+                "impact_service": "HDFS"
+            },
+            "weakens_hypothesis": null
+        }
+    ],
+    "feature4_action_plan": {
+        "plan": {
+            "action_id": "SWITCH_STANDBY_API",
+            "title": "Failover to Standby Upstream API",
+            "target": "gateway/HDFS-egress",
+            "command": "vault kv get secret/api/standby | terraform apply -var 'active_api=standby'",
+            "undo_command": "terraform apply -var 'active_api=primary'",
+            "blast_radius": "Large",
+            "reversibility": "Partial",
+            "risk_score": 75,
+            "parameters": {
+                "service": "HDFS",
+                "prev_rev": "PREV_STABLE_01"
+            }
+        },
+        "safety_evaluation": {
+            "decision": "APPROVAL REQUIRED (Expert Panel)",
+            "approval_level": "L2/L3 Senior Engineer",
+            "approval_required": true,
+            "risk_level": "High",
+            "slack_payload": {
+                "decision": "APPROVAL REQUIRED (Expert Panel)",
+                "action": "Failover to Standby Upstream API"
+            }
         }
     },
-    "safety_evaluation": {
-        "decision": "APPROVAL REQUIRED (Manual Review)",
-        "approval_required": true,
-        "risk_level": "High",
-        "slack_payload": {
-            "decision": "APPROVAL REQUIRED (Manual Review)",
-            "action": "Failover to Standby Upstream API"
-        }
-    },
-    "summary": "# \ud83d\udee0\ufe0f SRE Technical Briefing (Causal Audit)\n**Incident**: 5027c887f9f2 | **Analyzed At**: 2026-04-18T23:38:50.626Z\n\n## \ud83d\udcca Hypothesis Ranking\n**Separation**: 29 points \u2014 Moderate (Consider alternative before acting)\n1. **Upstream Service Degradation** \u2014 Medium (Score: 80/100) \u2190 Leading\n2. **Deploy-Induced Configuration Regression** \u2014 Low (Score: 50/100)\n3. **SSL/TLS Certificate Expiration** \u2014 Low (Score: 10/100)\n\n## \ud83c\udfaf Core Supportive Evidence\n[Unknown] **Upstream Dfs Latency rose 22.5x**\n   - *Baseline*: 24h trailing avg | *Policy*: Node health check\n   - *Drilldown*: [METRIC-UPSTREAM_DFS_LATENCY](grafana://metrics?query=upstream.dfs.latency&orgId=1&from=now-1h)\n[Unknown] **Service connection failure: '081109 203615 148 ERROR dfs.DataNode$PacketRespond...'**\n   - *Baseline*: N/A | *Policy*: Error signal threshold monitoring\n   - *Drilldown*: [LOG-5027c887f9f2](kibana://logs/viewer?template_id=5027c887f9f2&time=now-15m)\n\n## \u2696\ufe0f Conflicting / Weakening Signals\nNo weakening signals detected. Leading hypothesis is unchallenged.\n\n## \u26a1 Recovery Plan & Guardrails\n- **Recovery Trigger**: `SWITCH_STANDBY_API`\n- **Approval Required**: True\n- **Evidence Base**: 2 signals analyzed.\n\n---\n*Decision Support Layer (v3.1 - Causal Audit)*\n"
+    "feature5_summary": {
+        "sre_markdown": "# \ud83d\udee0\ufe0f SRE Technical Briefing (Causal Audit)\n**Incident**: 9666ba03d9df | **Analyzed At**: 2026-04-19T02:25:50.285Z\n\n## \ud83d\udcca Hypothesis Ranking\n**Separation**: 0 points \u2014 Ambiguous (Competing candidates \u2014 manual triage required)\n1. **Upstream Service Degradation** \u2014 Low (Score: 50/100) \u2190 Leading\n2. **Deploy-Induced Configuration Regression** \u2014 Low (Score: 50/100)\n3. **SSL/TLS Certificate Expiration** \u2014 Low (Score: 10/100)\n\n## \ud83c\udfaf Core Supportive Evidence\n[Unknown] **Network Egress Error Rate rose 45.0x**\n   - *Baseline*: 24h trailing avg | *Drilldown*: [METRIC-NETWORK_EGRESS_ERROR_RATE](grafana://metrics?query=network.egress.error_rate&orgId=1&from=now-1h)\n[Unknown] **Service connection failure: '...'**\n   - *Baseline*: N/A | *Drilldown*: [LOG-9666ba03d9df](kibana://logs/viewer?template_id=9666ba03d9df&time=now-15m)\n\n## \u2696\ufe0f Conflicting / Weakening Signals\n[Unknown] **Disk Iops remained near baseline (1.1x)**\n   - *Impact*: Weakens **Resource-based hypotheses (normal io)**\n   - *Baseline*: 24h trailing avg | *Drilldown*: [METRIC-DISK_IOPS](grafana://metrics?query=disk.iops&orgId=1&from=now-1h)\n\n## \u26a1 Recovery Plan & Guardrails\n- **Recovery Trigger**: `SWITCH_STANDBY_API`\n- **Approval Required**: True\n\n> [!CAUTION]\n> **GUARDRAIL ALERT**: Auto-remediation BLOCKED due to 1 weakening signal(s), separation is only 0 pts.\n\n\n## \ud83e\udde0 Proposed Postmortem Action Items (Draft)\n- [ ] Conduct deep-dive log analysis\n- [ ] Review service instrumentation\n- [ ] Update SRE runbook\n\n---\n*Decision Support Layer (v3.1 - Causal Audit)*\n",
+        "executive_markdown": "# Incident Executive Summary\n**Status**: \ud83d\udd34 Awaiting Approval\n**Priority**: P2 (High)\n\n## Impact Profile\n- **Service**: HDFS\n- **User Experience**: Degraded Performance/Errors\n- **Confirmed At**: 2026-04-19T02:25:50.285Z\n- **Estimated Revenue Impact**: $500 (Estimated for 10m outage)\n\n## Timeline & Communication\n- **Estimated Recovery (MTTR)**: ~10 mins\n- **Next Status Update**: 02:55:50 UTC (Expected in 30m)\n\n## Resolution Summary\n- **Leading Hypothesis**: Upstream Service Degradation\n- **Action**: Recovery trigger `SWITCH_STANDBY_API` is **Awaiting Approval**.\n"
+    }
 }

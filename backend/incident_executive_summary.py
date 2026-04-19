@@ -158,9 +158,56 @@ class EvidenceNormalizer:
         return None
 
 class PersonaRenderer:
-    """v3.1 Causal Audit Rendering with strict formatting."""
+    """v3.1 Causal Audit Rendering with strict formatting and business timeline."""
+    
+    ACTION_ITEM_MAP = {
+        "Database": [
+            "Scale up DB connection pool wait-timeout settings",
+            "Audit slow queries during partition windows",
+            "Implement circuit breaker for DB intensive services"
+        ],
+        "Network": [
+            "Review BGP/VPC routing table for gray failure isolation",
+            "Increase HTTP client retries with exponential backoff",
+            "Review network adapter firmware/driver consistency"
+        ],
+        "Deploy": [
+            "Add Canary stage with automated metric rollback",
+            "Enforce config-change validation in pre-deploy CI",
+            "Integrate deployment markers with Grafana dashboards"
+        ],
+        "Hardware": [
+            "Schedule proactive node decommissioning for R20-M0 cluster",
+            "Increase memory ECC error threshold alerts",
+            "Audit power supply stability for specific rack units"
+        ]
+    }
+
+    REVENUE_WEIGHTS = {
+        "payment": 500, # $500/min
+        "checkout": 300,
+        "order": 200,
+        "gateway": 150,
+        "auth": 100
+    }
+
     def render_executive(self, data):
-        status_emoji = "🔴" if "P1" in data['severity'] or "P2" in data['severity'] else "🟡"
+        # Emoji Optimization: Use Blue for Automated success to avoid panic
+        is_auto = "AUTO-EXECUTED" in data['hitl_status'] or "AUTO-RECOVERING" in data['hitl_status']
+        if is_auto:
+            status_emoji = "🔵" 
+        else:
+            status_emoji = "🔴" if "P1" in data['severity'] or "P2" in data['severity'] else "🟡"
+            
+        trigger_id = data['workflow'].get('trigger_id', 'N/A')
+        mttr = self._estimate_mttr(trigger_id)
+        
+        # Consistent Timeline: Base next update on analyzed_at
+        next_update = self._get_next_update_time(data['analyzed_at'])
+        
+        # Business Impact: Revenue Loss
+        revenue_loss = self._estimate_revenue_impact(data['service'], mttr)
+
         return f"""# Incident Executive Summary
 **Status**: {status_emoji} {data['hitl_status']}
 **Priority**: {data['severity']}
@@ -169,10 +216,15 @@ class PersonaRenderer:
 - **Service**: {data['service']}
 - **User Experience**: {data['impact']}
 - **Confirmed At**: {data['analyzed_at']}
+- **Estimated Revenue Impact**: {revenue_loss}
+
+## Timeline & Communication
+- **Estimated Recovery (MTTR)**: ~{mttr} mins
+- **Next Status Update**: {next_update} (Expected in 30m)
 
 ## Resolution Summary
 - **Leading Hypothesis**: {data['root_cause']}
-- **Action**: Recovery trigger `{data['workflow'].get('trigger_id', 'N/A')}` is **{data['hitl_status']}**.
+- **Action**: Recovery trigger `{trigger_id}` is **{data['hitl_status']}**.
 """
 
     def render_sre(self, data):
@@ -204,30 +256,20 @@ class PersonaRenderer:
         context_items = [item for item in data['timeline'] if item.category == "CONTEXT"]
 
         support_section = "\n".join([self._fmt_item(i) for i in support_items]) or "No direct supportive evidence."
+        weaken_section = "\n".join([self._fmt_item(i) for i in weaken_items]) if weaken_items else "No weakening signals detected."
         
-        if weaken_items:
-            weaken_section = "\n".join([self._fmt_item(i) for i in weaken_items])
-        else:
-            weaken_section = "No weakening signals detected. Leading hypothesis is unchallenged."
-        
-        context_section = "\n".join([self._fmt_item(i) for i in context_items]) or "No additional context."
-
         # 3. Guardrails
-        guardline = ""
         is_blocked = (len(weaken_items) > 0) or (gap <= 0.15)
+        guardline = ""
         if is_blocked:
             reasons = []
-            if weaken_items:
-                reasons.append(f"{len(weaken_items)} unresolved weakening signal(s)")
-            if gap <= 0.15:
-                reasons.append(f"hypothesis separation is only {gap_pts} points (threshold: 15)")
-            reason_str = " and ".join(reasons)
-            guardline = f"""
-> [!CAUTION]
-> **GUARDRAIL ALERT**: Automatic remediation is BLOCKED.
-> Reason: {reason_str}.
-> Required: Manual blast radius assessment before executing `{data['workflow'].get('trigger_id', 'N/A')}`.
-"""
+            if weaken_items: reasons.append(f"{len(weaken_items)} weakening signal(s)")
+            if gap <= 0.15: reasons.append(f"separation is only {gap_pts} pts")
+            guardline = f"\n> [!CAUTION]\n> **GUARDRAIL ALERT**: Auto-remediation BLOCKED due to {', '.join(reasons)}.\n"
+
+        # 4. Action Items (Postmortem Starter)
+        action_items = self._derive_action_items(data['root_cause'])
+        action_section = "\n".join([f"- [ ] {item}" for item in action_items])
 
         report = f"""# 🛠️ SRE Technical Briefing (Causal Audit)
 **Incident**: {data['incident_id']} | **Analyzed At**: {data['analyzed_at']}
@@ -245,29 +287,57 @@ class PersonaRenderer:
 ## ⚡ Recovery Plan & Guardrails
 - **Recovery Trigger**: `{data['workflow'].get('trigger_id', 'N/A')}`
 - **Approval Required**: {is_blocked or data['workflow'].get('approval_required', True)}
-- **Evidence Base**: {len(data['timeline'])} signals analyzed.
 {guardline}
+
+## 🧠 Proposed Postmortem Action Items (Draft)
+{action_section}
+
 ---
 *Decision Support Layer (v3.1 - Causal Audit)*
 """
         return report
 
-    def _fmt_item(self, item):
-        """Consistent evidence rendering for all tiers."""
-        row = f"[{item.observed_at}] **{item.content}**"
+    def _estimate_mttr(self, trigger_id):
+        if "RESTART" in trigger_id: return 5
+        if "FAILOVER" in trigger_id or "SWITCH" in trigger_id: return 10
+        if "ROLLBACK" in trigger_id: return 15
+        return 20
+
+    def _get_next_update_time(self, base_time_str):
+        # Fix: Parse base_time_str if available, otherwise use now
+        from datetime import datetime, timedelta
+        try:
+            # Handle various ISO formats
+            clean_ts = base_time_str.split(".")[0].replace("Z", "")
+            base_dt = datetime.strptime(clean_ts, "%Y-%m-%dT%H:%M:%S")
+        except:
+            base_dt = datetime.now()
         
-        # Log aggregation metadata
+        return (base_dt + timedelta(minutes=30)).strftime("%H:%M:%S UTC")
+
+    def _estimate_revenue_impact(self, service, duration_mins):
+        weight = 50 # Default $50/min
+        for key, val in self.REVENUE_WEIGHTS.items():
+            if key.lower() in service.lower():
+                weight = val
+                break
+        total = weight * duration_mins
+        return f"${total:,} (Estimated for {duration_mins}m outage)"
+
+    def _derive_action_items(self, root_cause):
+        for key, items in self.ACTION_ITEM_MAP.items():
+            if key.lower() in root_cause.lower():
+                return items
+        return ["Conduct deep-dive log analysis", "Review service instrumentation", "Update SRE runbook"]
+
+    def _fmt_item(self, item):
+        row = f"[{item.observed_at}] **{item.content}**"
         if item.aggregation_info and item.aggregation_info.get("count", 0) > 1:
             agg = item.aggregation_info
-            row += f"\n   - *Occurrences*: {agg['count']}x | First seen: {agg.get('first_seen', 'N/A')} | Service: {agg.get('impact_service', 'N/A')}"
-        
-        # Weakening target
+            row += f"\n   - *Occurrences*: {agg['count']}x | Service: {agg.get('impact_service', 'N/A')}"
         if item.weakens_hypothesis:
-            row += f"\n   - *Impact*: Weakens **{item.weakens_hypothesis}** (signal is within normal range)"
-        
-        # Consistent fields
-        row += f"\n   - *Baseline*: {item.baseline_desc} | *Policy*: {item.policy_desc}"
-        row += f"\n   - *Drilldown*: [{item.evidence_id}]({item.drilldown_url})"
+            row += f"\n   - *Impact*: Weakens **{item.weakens_hypothesis}**"
+        row += f"\n   - *Baseline*: {item.baseline_desc} | *Drilldown*: [{item.evidence_id}]({item.drilldown_url})"
         return row
 
     def _get_qualitative_confidence(self, score):

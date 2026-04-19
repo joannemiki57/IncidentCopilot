@@ -1,45 +1,45 @@
 [
-    {
-        "evidence_id": "METRIC-NETWORK_EGRESS_ERROR_RATE",
-        "category": "SUPPORT",
-        "signal_name": "network.egress.error_rate",
-        "content": "Network Egress Error Rate rose 45.0x",
-        "observed_at": "Unknown",
-        "delta_ratio": 45.0,
-        "baseline_desc": "24h trailing avg",
-        "policy_desc": "Network Threshold",
-        "drilldown_url": "grafana://metrics?query=network.egress.error_rate&orgId=1&from=now-1h",
-        "aggregation_info": {},
-        "weakens_hypothesis": null
+  {
+    "evidence_id": "METRIC-UPSTREAM_LATENCY",
+    "category": "SUPPORT",
+    "signal_name": "upstream.latency",
+    "content": "Upstream Latency rose 5.0x",
+    "observed_at": "11:15:00",
+    "delta_ratio": 5.0,
+    "baseline_desc": "24h trailing avg",
+    "policy_desc": "Deviation from normal baseline",
+    "drilldown_url": "grafana://metrics?query=upstream.latency&orgId=1&from=now-1h",
+    "aggregation_info": {},
+    "weakens_hypothesis": null
+  },
+  {
+    "evidence_id": "METRIC-DB_ACTIVE_CONNECTIONS",
+    "category": "SUPPORT",
+    "signal_name": "db.active_connections",
+    "content": "Db Active Connections exceeded configured limit (450/400)",
+    "observed_at": "11:15:00",
+    "delta_ratio": 3.0,
+    "baseline_desc": "24h trailing avg",
+    "policy_desc": "Deviation from normal baseline",
+    "drilldown_url": "grafana://metrics?query=db.active_connections&orgId=1&from=now-1h",
+    "aggregation_info": {},
+    "weakens_hypothesis": null
+  },
+  {
+    "evidence_id": "LOG-a5e78d270987",
+    "category": "SUPPORT",
+    "signal_name": "error_log",
+    "content": "Service connection failure: '2026-04-19 11:15:00 FATAL: Connection refused from...'",
+    "observed_at": "11:15:00",
+    "delta_ratio": 1.0,
+    "baseline_desc": "N/A",
+    "policy_desc": "Error signal threshold monitoring",
+    "drilldown_url": "kibana://logs/viewer?template_id=a5e78d270987&time=now-15m",
+    "aggregation_info": {
+      "count": 1,
+      "first_seen": "11:15:00",
+      "impact_service": "Unknown System"
     },
-    {
-        "evidence_id": "METRIC-CPU_USAGE",
-        "category": "CONTEXT",
-        "signal_name": "cpu.usage",
-        "content": "Cpu Usage dropped to 0.7x",
-        "observed_at": "Unknown",
-        "delta_ratio": 0.6666666666666666,
-        "baseline_desc": "24h trailing avg",
-        "policy_desc": "Normal range",
-        "drilldown_url": "grafana://metrics?query=cpu.usage&orgId=1&from=now-1h",
-        "aggregation_info": {},
-        "weakens_hypothesis": null
-    },
-    {
-        "evidence_id": "LOG-831827d0ca33",
-        "category": "SUPPORT",
-        "signal_name": "error_log",
-        "content": "Service connection failure: '...'",
-        "observed_at": "Unknown",
-        "delta_ratio": 1.0,
-        "baseline_desc": "N/A",
-        "policy_desc": "Error signal threshold monitoring",
-        "drilldown_url": "kibana://logs/viewer?template_id=831827d0ca33&time=now-15m",
-        "aggregation_info": {
-            "count": 1,
-            "first_seen": "Unknown",
-            "impact_service": "HDFS"
-        },
-        "weakens_hypothesis": null
-    }
+    "weakens_hypothesis": null
+  }
 ]

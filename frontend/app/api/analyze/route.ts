@@ -74,11 +74,30 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const rawBody: unknown = await req.json().catch(() => ({}))
   // 과거 호환: scenarioId / scenarioHint 둘 다 수용. 같은 의미.
-  const body = rawBody as { scenarioHint?: unknown; scenarioId?: unknown }
-  const hint = body.scenarioHint ?? body.scenarioId
-  const scenario = resolveScenario(hint)
+  const body = rawBody as { scenarioHint?: unknown; scenarioId?: unknown; logText?: string }
+  let hint = body.scenarioHint ?? body.scenarioId
+  
+  // --- 0) 실시간 분석 요청 처리 (Python API 브릿지) ---
+  if (body.logText && body.logText.trim().length > 0) {
+    hint = "latest" // 실시간 분석 결과는 항상 feature-split(latest) 경로로 저장됨
+    try {
+      const pyResp = await fetch("http://localhost:8000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ log_text: body.logText }),
+      })
+      if (!pyResp.ok) {
+        console.error("[api/analyze] Python backend failed", await pyResp.text())
+      }
+    } catch (err) {
+      console.error("[api/analyze] Failed to reach Python backend", err)
+    }
+  } else {
+    // 실시간 로그가 아닌 샘플 시나리오 로딩 시에는 기존대로 인위적 지연 추가
+    await sleep(ARTIFICIAL_DELAY_MS)
+  }
 
-  await sleep(ARTIFICIAL_DELAY_MS)
+  const scenario = resolveScenario(hint)
 
   // --- 1) 실제 팀원 데이터 시도 ---
   let realRaw: TeamRealOutput | undefined

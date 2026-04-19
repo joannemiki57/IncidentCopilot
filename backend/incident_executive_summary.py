@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from incident_code_optimizer import CodeOptimizationEngine
 
 class EvidenceItem:
     """Standardized schema for v3.1 (Causal Audit Layer)."""
@@ -269,11 +270,45 @@ class PersonaRenderer:
 
         # 4. Action Items (Postmortem Starter)
         action_items = self._derive_action_items(data['root_cause'])
+        
+        # Feature 6 Integration: Optimization Note
+        optimization_note = ""
+        if data.get("optimization_brief"):
+            opt = data["optimization_brief"]
+            optimization_note = f"\n> [!TIP]\n> **AI OPTIMIZATION**: {opt['issue_type']} detected in `{opt['target_location']}`. Already registered in optimization backlog.\n"
+
         action_section = "\n".join([f"- [ ] {item}" for item in action_items])
+
+        # 5. AI Code Optimization Briefing (Feature 6)
+        optimization_section = ""
+        if data.get("optimization_brief"):
+            opt = data["optimization_brief"]
+            delta = opt["performance_delta"]
+            other_m = "\n".join([f"- {m['name']}: {m['before']} → {m['after']} ({m['gain']} gain)" for m in delta.get("other_metrics", [])])
+            
+            optimization_section = f"""
+## 🧠 AI Code Optimization Briefing
+- **Target**: `{opt['target_location']}`
+- **Pattern**: {opt['issue_type']} - {opt['description']}
+
+### 📈 Predicted Performance Impact
+| Metric | Current | Estimated | Impact |
+| :--- | :--- | :--- | :--- |
+| {delta['metric']} | {delta['current']} | {delta['estimated']} | {delta['impact']} |
+
+**Secondary Improvements**:
+{other_m}
+
+### 💻 Refactoring Suggestion
+```java
+{opt['refactoring_suggestion']}
+```
+"""
 
         report = f"""# 🛠️ SRE Technical Briefing (Causal Audit)
 **Incident**: {data['incident_id']} | **Analyzed At**: {data['analyzed_at']}
 
+{guardline}{optimization_note}
 ## 📊 Hypothesis Ranking
 **Separation**: {gap_pts} points — {gap_desc}
 {ranking_section}
@@ -287,7 +322,8 @@ class PersonaRenderer:
 ## ⚡ Recovery Plan & Guardrails
 - **Recovery Trigger**: `{data['workflow'].get('trigger_id', 'N/A')}`
 - **Approval Required**: {is_blocked or data['workflow'].get('approval_required', True)}
-{guardline}
+
+{optimization_section}
 
 ## 🧠 Proposed Postmortem Action Items (Draft)
 {action_section}
@@ -355,9 +391,15 @@ class ExecutiveSummaryEngine:
         rca = rca_report.get("root_cause_analysis", {})
         top_hypotheses = rca.get("top_hypotheses", [])
         
+        # Feature 6: AI Code Optimization
+        opt_brief = None
+        if persona == "SRE" or True: # Generate anyway for reporting
+            optimizer = CodeOptimizationEngine()
+            opt_brief = optimizer.analyze(rca_report, triage_report, ctx)
+
         # Pass hypotheses into normalizer so it can do hypothesis-aware categorization
         evidence_graph = self.normalizer.normalize(triage_report, ctx, top_hypotheses)
-        
+
         data = {
             "incident_id": triage_report.get("Context Metadata", {}).get("Template ID", "N/A"),
             "service": triage_report.get("Triage Results", {}).get("Affected Service", "Unknown"),
@@ -368,7 +410,8 @@ class ExecutiveSummaryEngine:
             "hitl_status": rca.get("hitl_status", "Checking"),
             "workflow": top_hypotheses[0].get("recovery_workflow", {}) if top_hypotheses else {},
             "timeline": evidence_graph,
-            "analyzed_at": rca.get("analyzed_at", "N/A")
+            "analyzed_at": rca.get("analyzed_at", "N/A"),
+            "optimization_brief": opt_brief
         }
 
         if persona == "Executive":

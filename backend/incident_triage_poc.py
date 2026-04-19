@@ -544,6 +544,7 @@ def incident_triage(log_message: str, structured: dict = None, tracker: Persiste
 
     # ── Assemble Output ────────────────────────────────────────────────────
     result = {
+        "log_raw": log_message,
         "Triage Results": {
             "Affected Service":  service,
             "Severity Level":    severity,

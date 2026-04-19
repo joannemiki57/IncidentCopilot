@@ -58,6 +58,16 @@ HYPOTHESIS_TEMPLATES = {
             "description": "Partial failure where a node is alive but performing extremely slowly due to I/O bottlenecks."
         }
     ],
+    "Database_Error": [
+        {
+            "id": "H_DB_1",
+            "title": "N+1 Database Query Pattern",
+            "log_signals": ["connection pool", "repeated query", "n+1", "acquire jdbc"],
+            "required_metrics": ["db.active_connections", "db.pool.waiting"],
+            "recovery_trigger_id": "RESTART_DB_POOL",
+            "description": "Core performance bottleneck: Sequential queries in a loop triggering pool exhaustion."
+        }
+    ],
     "Software_Glitch": [
         {
             "id": "H_SW_2",

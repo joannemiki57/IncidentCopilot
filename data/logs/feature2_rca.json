@@ -1,0 +1,79 @@
+{
+    "root_cause_analysis": {
+        "top_hypotheses": [
+            {
+                "hypothesis": "Upstream Service Degradation",
+                "total_confidence": 0.5,
+                "breakdown": {
+                    "Log Quality": 0.4,
+                    "Time-Decay Deploy": 0.0,
+                    "Metric Anomaly": 0.0,
+                    "evidence_ids": [
+                        "LOG-831827d0ca33"
+                    ],
+                    "Causality Boost": 0.1
+                },
+                "id": "H_NET_1",
+                "description": "External upstream dependency is slow or unreachable, causing caller-side resource starvation.",
+                "verification_steps": [
+                    "Verify log correlation."
+                ],
+                "recovery_workflow": {
+                    "trigger_id": "SWITCH_STANDBY_API",
+                    "approval_required": true,
+                    "safety_level": "High (Manual Approval)",
+                    "action_description": "Execute Upstream Service Degradation automated recovery SOP."
+                }
+            },
+            {
+                "hypothesis": "Deploy-Induced Configuration Regression",
+                "total_confidence": 0.5,
+                "breakdown": {
+                    "Log Quality": 0.4,
+                    "Time-Decay Deploy": 0.0,
+                    "Metric Anomaly": 0.0,
+                    "evidence_ids": [
+                        "LOG-831827d0ca33"
+                    ],
+                    "Causality Boost": 0.1
+                },
+                "id": "H_NET_2",
+                "description": "Recent deployment changed timeout/pool/retry settings, degrading service resilience.",
+                "verification_steps": [
+                    "Verify log correlation."
+                ],
+                "recovery_workflow": {
+                    "trigger_id": "ROLLBACK_DEPLOY",
+                    "approval_required": true,
+                    "safety_level": "High (Manual Approval)",
+                    "action_description": "Execute Deploy-Induced Configuration Regression automated recovery SOP."
+                }
+            },
+            {
+                "hypothesis": "SSL/TLS Certificate Expiration",
+                "total_confidence": 0.1,
+                "breakdown": {
+                    "Log Quality": 0.0,
+                    "Time-Decay Deploy": 0.0,
+                    "Metric Anomaly": 0.0,
+                    "evidence_ids": [],
+                    "Causality Boost": 0.1
+                },
+                "id": "H_NET_3",
+                "description": "Authentication failure due to expired or invalid SSL certificates.",
+                "verification_steps": [
+                    "Verify log correlation."
+                ],
+                "recovery_workflow": {
+                    "trigger_id": "RENEW_SSL_CERT",
+                    "approval_required": true,
+                    "safety_level": "High (Manual Approval)",
+                    "action_description": "Execute SSL/TLS Certificate Expiration automated recovery SOP."
+                }
+            }
+        ],
+        "hitl_status": "Awaiting Approval",
+        "analyzed_at": "2026-04-19T02:17:27.375Z",
+        "reasoning_context": "Ranked 1: 'Upstream Service Degradation' (50% conf). Reasoning: Found Log signatures matched, Prioritized as Infrastructure Layer issue."
+    }
+}

@@ -47,6 +47,7 @@ import json
 import os
 import sys
 import uuid
+import httpx
 from dataclasses import asdict, is_dataclass
 from typing import Any, AsyncGenerator, Optional
 
@@ -424,36 +425,86 @@ async def analyze_stream(req: AnalyzeRequest) -> StreamingResponse:
 @app.get("/api/logs/stream")
 async def stream_logs(path: str) -> StreamingResponse:
     """
-    Stream lines from a local file using SSE.
+    Stream lines from a local file or remote URL using SSE.
     """
-    # 1. Try absolute or current working directory
-    abs_path = os.path.abspath(path)
-    if not os.path.exists(abs_path):
-        # 2. Try relative to REPO_ROOT (common for data/test.log)
-        root_rel_path = os.path.join(REPO_ROOT, path)
-        if os.path.exists(root_rel_path):
-            abs_path = root_rel_path
-        else:
-            raise HTTPException(status_code=404, detail=f"File not found: {path} (checked {abs_path} and {root_rel_path})")
+    is_url = path.startswith("http://") or path.startswith("https://")
+    abs_path = path
 
-    async def _tail_file_generator():
-        # Open file and seek to the end to start watching new lines
-        with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
-            f.seek(0, os.SEEK_END)
-            yield _sse("log_started", {"path": abs_path, "time": _now_iso()})
+    # --- Smart Path Resolution (for local files) ---
+    if not is_url:
+        # 1. Try absolute or current working directory
+        abs_path = os.path.abspath(path)
+        if not os.path.exists(abs_path):
+            # 2. Try common fallbacks (data/, logs/, docs/)
+            fallbacks = ["data", "logs", "docs"]
+            found = False
+            for fb in fallbacks:
+                test_path = os.path.join(REPO_ROOT, fb, os.path.basename(path))
+                if os.path.exists(test_path):
+                    abs_path = test_path
+                    found = True
+                    break
             
-            while True:
-                line = f.readline()
-                if not line:
-                    await asyncio.sleep(0.2) # Wait for new content to arrive
-                    continue
-                
-                yield _sse("log_line", {"text": line, "time": _now_iso()})
-                # Small yield to keep loop responsive
-                await asyncio.sleep(0)
+            if not found:
+                # 3. Final try: relative to REPO_ROOT directly
+                root_rel_path = os.path.join(REPO_ROOT, path)
+                if os.path.exists(root_rel_path):
+                    abs_path = root_rel_path
+                else:
+                    raise HTTPException(status_code=404, detail=f"File not found: {path}")
+
+    async def _log_generator():
+        # --- Remote URL Streaming Case ---
+        if is_url:
+            yield _sse("log_started", {"path": path, "mode": "remote", "time": _now_iso()})
+            try:
+                async with httpx.AsyncClient(timeout=None) as client:
+                    async with client.stream("GET", path) as response:
+                        if response.status_code != 200:
+                            yield _sse("error", {"message": f"Failed to connect to URL: {response.status_code}"})
+                            return
+                        
+                        async for line in response.aiter_lines():
+                            if line.strip():
+                                yield _sse("log_line", {"text": line, "time": _now_iso()})
+                            await asyncio.sleep(0)  # Yield to event loop
+            except Exception as e:
+                yield _sse("error", {"message": f"URL Stream error: {str(e)}"})
+            return
+
+        # --- Local File Streaming Case (with History) ---
+        yield _sse("log_started", {"path": abs_path, "mode": "local", "time": _now_iso()})
+        try:
+            # 1. History Burst (Last 50 lines)
+            try:
+                with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+                    # Seek from end to get some history efficiently
+                    f.seek(0, os.SEEK_END)
+                    end_pos = f.tell()
+                    # Backward seek to find a reasonable amount of text (approx 10KB)
+                    f.seek(max(0, end_pos - 10240))
+                    history = f.readlines()
+                    # Send the last 50 lines as 'history' events
+                    for line in history[-50:]:
+                        yield _sse("log_line", {"text": line.strip() + " (historical)", "time": _now_iso()})
+            except Exception:
+                pass # History loading failure shouldn't stop the stream
+            
+            # 2. Real-time Tail
+            with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+                f.seek(0, os.SEEK_END)
+                while True:
+                    line = f.readline()
+                    if not line:
+                        await asyncio.sleep(0.2)
+                        continue
+                    yield _sse("log_line", {"text": line.strip(), "time": _now_iso()})
+                    await asyncio.sleep(0)
+        except Exception as e:
+            yield _sse("error", {"message": f"Local file error: {str(e)}"})
 
     return StreamingResponse(
-        _tail_file_generator(),
+        _log_generator(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache, no-transform",

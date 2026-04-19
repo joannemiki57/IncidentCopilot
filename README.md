@@ -13,7 +13,7 @@ A web console for incident response: paste raw logs and walk through **triage �
 | **Executive summary** | Role-aware briefings (e.g. SRE vs executive) |
 | **Optimization** | Hints for related code or configuration |
 
-Demo and integrated scenarios live under `data/` and `frontend/mocks/`. Each live run can also persist per-stage JSON under `data/live/<run_id>/` for an audit trail aligned with the feature-split format the UI loaders expect.
+Demo and integrated scenarios live under `data/` and `frontend/mocks/` (see [Data sources](#data-sources)). Each live run can also persist per-stage JSON under `data/live/<run_id>/` for an audit trail aligned with the feature-split format the UI loaders expect.
 
 ## Prerequisites
 
@@ -62,6 +62,10 @@ data/           # Sample scenario / per-feature JSON
 prompts/        # Prompt-related assets
 ```
 
+## Data sources
+
+Sample log data used for demos and integrated scenarios in this repository comes from **[LogHub](https://github.com/logpai/loghub)** ([`logpai/loghub`](https://github.com/logpai/loghub)), a large collection of system log datasets for AI-driven log analytics (LogPAI; see the upstream repo for the ISSRE’23 reference and citations). Use and redistribution of that material are subject to **LogHub’s own license and terms**—check the [LogHub repository](https://github.com/logpai/loghub) before republishing or building on the raw datasets.
+
 ## Frontend scripts
 
 - `npm run build` — production build
@@ -106,7 +110,7 @@ The UI maps each payload through **adapters** (`frontend/lib/adapters/`) into a 
 
 ### Data paths
 
-- **Integrated / mock mode**: JSON under `data/` or `frontend/mocks/ui/` is loaded by adapters for demos without a running backend.
+- **Integrated / mock mode**: JSON under `data/` or `frontend/mocks/ui/` is loaded by adapters for demos without a running backend. Underlying log samples are attributed in [Data sources](#data-sources).
 - **Live mode**: the FastAPI stream drives the UI; intermediate JSON may be written under `data/live/<run_id>/` for debugging and parity with the split file layout.
 
 ### License

@@ -939,3 +939,224 @@
 2026-04-19 01:56:55 INFO: Service health check heartbeat (status: OK)
 2026-04-19 01:56:58 INFO: Service health check heartbeat (status: OK)
 2026-04-19 01:57:01 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 01:57:04 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:07 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:10 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:13 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:16 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:57:19 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:22 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:25 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:28 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:31 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:57:34 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:37 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:40 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:43 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:46 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 01:57:49 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:52 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:55 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:57:58 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:01 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 01:58:04 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:07 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:10 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:13 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:16 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:58:19 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:22 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:25 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:28 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:31 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 01:58:34 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:37 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:40 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:43 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:46 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 01:58:49 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:52 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:55 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:58:58 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:01 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:59:04 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:07 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:10 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:13 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:16 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:59:19 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:22 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:25 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:28 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:31 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 01:59:34 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:37 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:40 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:43 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:46 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 01:59:49 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:52 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:55 INFO: Service health check heartbeat (status: OK)
+2026-04-19 01:59:58 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:01 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:00:04 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:07 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:10 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:13 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:16 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:00:19 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:22 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:25 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:28 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:31 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:00:34 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:37 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:40 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:43 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:46 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:00:49 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:52 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:55 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:00:58 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:02 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:01:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:17 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:01:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:32 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:01:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:47 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:01:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:01:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:02 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:02:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:17 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:02:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:32 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:02:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:47 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:02:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:02:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:02 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:03:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:17 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:03:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:32 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:03:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:47 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:03:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:03:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:02 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:04:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:17 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:04:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:32 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:04:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:47 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:04:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:04:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:02 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:05:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:17 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:05:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:32 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:05:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:47 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:05:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:05:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:02 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:06:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:17 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:06:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:32 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:06:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:47 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:06:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:06:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:02 ERROR: Memory leak detected in JVM heap space. Usage > 95%.
+2026-04-19 02:07:05 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:08 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:11 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:14 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:17 CRITICAL: Disk full on /var/lib/mysql. Cannot write transaction log.
+2026-04-19 02:07:20 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:23 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:26 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:29 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:32 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:07:35 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:38 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:41 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:44 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:47 FATAL: Connection refused from payment-gateway.timeout: 5000ms.
+2026-04-19 02:07:50 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:53 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:56 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:07:59 INFO: Service health check heartbeat (status: OK)
+2026-04-19 02:08:02 ERROR: Database connection pool exhausted. 0 active connections available.
+2026-04-19 02:08:05 INFO: Service health check heartbeat (status: OK)

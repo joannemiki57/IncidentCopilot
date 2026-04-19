@@ -285,7 +285,19 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
         const assembled = assembleFromRealOutput("latest", raw)
         const parsed = incidentAnalysisSchema.safeParse(assembled)
         if (parsed.success) {
-          set({ analysisResult: parsed.data })
+          const newResult = parsed.data
+          const currentSelected = get().selectedHypothesisId
+
+          // 1순위 가설 자동 선택: 가설 목록이 생겼는데 선택된 게 없다면 첫 번째 가설을 클릭한 것으로 간주
+          let nextSelected = currentSelected
+          if (!nextSelected && newResult.hypotheses && newResult.hypotheses.length > 0) {
+            nextSelected = newResult.hypotheses[0].id
+          }
+
+          set({ 
+            analysisResult: newResult,
+            selectedHypothesisId: nextSelected 
+          })
         }
         // 부분 조립은 schema 가 요구하는 최소 필드를 아직 못 만족할 수 있으므로
         // 실패하면 조용히 건너뛴다 (다음 stage 에서 성공할 것).

@@ -1,143 +1,131 @@
-// 팀원의 기능 2 (root_cause_analysis.top_hypotheses) → UI Hypothesis[] 변환.
+// 팀원의 최종 실제 포맷 (data/*.json) → UI Hypothesis[] 변환.
 //
-// breakdown 이 object 로 올 수도 있고, 팀 포맷이 아직 고정되지 않아서
-// "0.4 * logQuality + 0.3 * timeDecayDeploy + 0.3 * metricAnomaly" 같은
-// 수식 문자열로 올 수도 있어서 두 경우 모두 파싱한다.
+// 실제 경로: raw.rca.root_cause_analysis.top_hypotheses[]
+// 주요 필드 매핑:
+//   hypothesis.hypothesis         → title
+//   hypothesis.total_confidence   → confidence
+//   hypothesis.description        → reasoning
+//   hypothesis.id                 → id
+//   hypothesis.breakdown          → breakdown + evidenceIds
+//     - "Log Quality", "Time-Decay Deploy", "Metric Anomaly" 세 키만 UI 에 반영
+//     - "Causality Boost" 는 UI 확장 전까지는 버림
+//     - breakdown.evidence_ids    → evidenceIds
+//   hypothesis.recovery_workflow.trigger_id         → triggerId
+//   hypothesis.recovery_workflow.safety_level       → safetyLevel ("High (...)"/ "Low (...)" 괄호 앞부분만)
+//   hypothesis.recovery_workflow.approval_required  → approvalRequired
+//   root.hitl_status (상위)                          → hypothesis 레벨에도 복사
 
-import type { Hypothesis, TeamIncidentOutput } from "../types"
+import type { Hypothesis, TeamRealHypothesis, TeamRealOutput } from "../types"
 
-type RawHypothesis = NonNullable<
-  NonNullable<TeamIncidentOutput["root_cause_analysis"]>["top_hypotheses"]
->[number]
-
-export function adaptTeamHypotheses(raw: TeamIncidentOutput): Hypothesis[] {
-  const list = raw.root_cause_analysis?.top_hypotheses
+export function adaptTeamHypotheses(raw: TeamRealOutput): Hypothesis[] {
+  const list = raw.rca?.root_cause_analysis?.top_hypotheses
   if (!Array.isArray(list)) return []
 
+  // top-level hitl_status 를 가설 레벨에도 복사해서 UI 에서 일관되게 뱃지를 그릴 수 있게 한다.
+  const parentHitl = raw.rca?.root_cause_analysis?.hitl_status
+
   return list
-    .map((h, index) => adaptSingleHypothesis(h, index))
+    .map((h, index) => adaptSingleHypothesis(h, index, parentHitl))
     .filter((h): h is Hypothesis => h !== null)
 }
 
 function adaptSingleHypothesis(
-  raw: RawHypothesis,
-  index: number
+  raw: TeamRealHypothesis,
+  index: number,
+  parentHitl: "Awaiting Approval" | "Auto-Executable" | undefined
 ): Hypothesis | null {
-  const title = typeof raw.title === "string" ? raw.title : undefined
+  const title = typeof raw.hypothesis === "string" ? raw.hypothesis : undefined
   if (!title) {
-    // title 없는 가설은 UI에 쓸 수 없으므로 버린다.
+    // title(=hypothesis) 없는 가설은 UI에 쓸 수 없으므로 버린다.
     return null
   }
+
+  const breakdown = parseBreakdown(raw.breakdown)
 
   const base: Hypothesis = {
     id: typeof raw.id === "string" ? raw.id : `h${index + 1}`,
     title,
     confidence: clamp01(
-      typeof raw.confidence === "number" ? raw.confidence : 0.5
+      typeof raw.total_confidence === "number" ? raw.total_confidence : 0.5
     ),
-    evidenceIds: Array.isArray(raw.evidence_ids)
-      ? raw.evidence_ids.filter((x): x is string => typeof x === "string")
-      : [],
+    evidenceIds: extractEvidenceIds(raw.breakdown),
   }
 
-  if (typeof raw.reasoning === "string" && raw.reasoning.length > 0) {
-    base.reasoning = raw.reasoning
+  if (typeof raw.description === "string" && raw.description.length > 0) {
+    base.reasoning = raw.description
   }
 
-  const breakdown = parseBreakdown(raw.breakdown)
   if (breakdown) {
     base.breakdown = breakdown
   }
 
-  if (raw.safety_level === "High" || raw.safety_level === "Low") {
-    base.safetyLevel = raw.safety_level
+  const safetyLevel = normalizeSafetyLevel(raw.recovery_workflow?.safety_level)
+  if (safetyLevel) {
+    base.safetyLevel = safetyLevel
+  }
+
+  if (typeof raw.recovery_workflow?.approval_required === "boolean") {
+    base.approvalRequired = raw.recovery_workflow.approval_required
   }
 
   if (
-    raw.hitl_status === "Awaiting Approval" ||
-    raw.hitl_status === "Auto-Executable"
+    typeof raw.recovery_workflow?.trigger_id === "string" &&
+    raw.recovery_workflow.trigger_id.length > 0
   ) {
-    base.hitlStatus = raw.hitl_status
+    base.triggerId = raw.recovery_workflow.trigger_id
   }
 
-  if (typeof raw.approval_required === "boolean") {
-    base.approvalRequired = raw.approval_required
-  }
-
-  if (typeof raw.trigger_id === "string" && raw.trigger_id.length > 0) {
-    base.triggerId = raw.trigger_id
+  // top-level HITL status 를 가설에도 내려준다.
+  if (
+    parentHitl === "Awaiting Approval" ||
+    parentHitl === "Auto-Executable"
+  ) {
+    base.hitlStatus = parentHitl
   }
 
   return base
 }
 
-// breakdown 파서.
-// 수식 문자열: "0.4 * logQuality + 0.3 * timeDecayDeploy + 0.3 * metricAnomaly"
-// object: { logQuality: 0.4, timeDecayDeploy: 0.3, metricAnomaly: 0.3 }
-// 둘 중 하나든 아니든, 3개 가중치를 모두 얻어내지 못하면 undefined.
+// 실제 breakdown 은 snake-case / 공백 포함 키 이름을 쓴다.
+// UI 모델이 카멜케이스 3개만 받으므로 여기서 매핑 + clamp.
 export function parseBreakdown(
-  raw: unknown
+  raw: TeamRealHypothesis["breakdown"]
 ): Hypothesis["breakdown"] | undefined {
-  if (!raw) return undefined
+  if (!raw || typeof raw !== "object") return undefined
 
-  if (typeof raw === "object") {
-    const obj = raw as Record<string, unknown>
-    const logQuality = toNumber(obj.logQuality)
-    const timeDecayDeploy = toNumber(obj.timeDecayDeploy)
-    const metricAnomaly = toNumber(obj.metricAnomaly)
-    if (
-      logQuality !== undefined &&
-      timeDecayDeploy !== undefined &&
-      metricAnomaly !== undefined
-    ) {
-      return { logQuality, timeDecayDeploy, metricAnomaly }
-    }
+  const logQuality = toNumber(raw["Log Quality"])
+  const timeDecayDeploy = toNumber(raw["Time-Decay Deploy"])
+  const metricAnomaly = toNumber(raw["Metric Anomaly"])
+
+  // 3 개 중 하나라도 모자라면 UI breakdown 자체를 그리지 않는다 (혼란 방지).
+  if (
+    logQuality === undefined ||
+    timeDecayDeploy === undefined ||
+    metricAnomaly === undefined
+  ) {
     return undefined
   }
 
-  if (typeof raw === "string") {
-    return parseBreakdownFormula(raw)
-  }
-
-  return undefined
+  return { logQuality, timeDecayDeploy, metricAnomaly }
 }
 
-// "0.4 * logQuality + 0.3 * timeDecayDeploy + 0.3 * metricAnomaly" 같은 수식에서
-// 각 계수 3개를 뽑는다. 계수 누락 / 다른 이름이 섞여있어도 안전하게 fallback.
-export function parseBreakdownFormula(
-  formula: string
-): Hypothesis["breakdown"] | undefined {
-  const NAMES = ["logQuality", "timeDecayDeploy", "metricAnomaly"] as const
-  const result: Record<(typeof NAMES)[number], number | undefined> = {
-    logQuality: undefined,
-    timeDecayDeploy: undefined,
-    metricAnomaly: undefined,
-  }
+function extractEvidenceIds(
+  raw: TeamRealHypothesis["breakdown"]
+): string[] {
+  if (!raw || typeof raw !== "object") return []
+  const ids = raw.evidence_ids
+  if (!Array.isArray(ids)) return []
+  return ids.filter((x): x is string => typeof x === "string")
+}
 
-  for (const name of NAMES) {
-    // number * name  또는  name * number  형태 둘 다 매칭.
-    const pattern = new RegExp(
-      `(\\d+(?:\\.\\d+)?)\\s*\\*\\s*${name}|${name}\\s*\\*\\s*(\\d+(?:\\.\\d+)?)`
-    )
-    const match = formula.match(pattern)
-    if (match) {
-      const val = parseFloat(match[1] ?? match[2] ?? "")
-      if (!Number.isNaN(val)) result[name] = clamp01(val)
-    }
-  }
-
-  if (
-    result.logQuality !== undefined &&
-    result.timeDecayDeploy !== undefined &&
-    result.metricAnomaly !== undefined
-  ) {
-    return {
-      logQuality: result.logQuality,
-      timeDecayDeploy: result.timeDecayDeploy,
-      metricAnomaly: result.metricAnomaly,
-    }
-  }
-
+// "High (Manual Approval)" / "Low (Auto)" 형태에서 앞의 High/Low 만 뽑아온다.
+function normalizeSafetyLevel(
+  raw: string | undefined
+): "High" | "Low" | undefined {
+  if (typeof raw !== "string") return undefined
+  const trimmed = raw.trim()
+  if (trimmed.startsWith("High")) return "High"
+  if (trimmed.startsWith("Low")) return "Low"
   return undefined
 }
 

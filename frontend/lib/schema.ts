@@ -71,7 +71,15 @@ export const hypothesisSchema = z.object({
 })
 
 // === Evidence ===
-export const evidenceTagSchema = z.enum(["Critical", "Warning", "Supporting"])
+// Context / Conflicting 은 feature-split 포맷(feature3_evidence.json)에서 유도되는 신규 태그.
+// UI 에 아직 대응되는 배지가 없을 수 있으므로 adapter 는 채우지만 렌더는 fallback 으로 처리.
+export const evidenceTagSchema = z.enum([
+  "Critical",
+  "Warning",
+  "Supporting",
+  "Context",
+  "Conflicting",
+])
 
 export const evidenceSchema = z.object({
   id: z.string(),
@@ -85,6 +93,8 @@ export const evidenceSchema = z.object({
   baseline: z.string().optional(),
   current: z.string().optional(),
   delta: z.string().optional(),
+  sourceType: z.enum(["log", "metric", "event"]).optional(),
+  drilldownUrl: z.string().optional(),
 })
 
 // === Action ===
@@ -94,6 +104,8 @@ export const actionSchema = z.object({
   urgency: z.enum(["immediate", "verify", "followup"]),
   risk: z.enum(["none", "low", "medium", "high"]).optional(),
   rationale: z.string().optional(),
+  // 팀원 action_plan.reversibility 를 별도 필드로 노출 ("Full"/"Partial"/"Irreversible" 등).
+  reversibility: z.string().optional(),
 })
 
 // === Executive summary ===
@@ -120,4 +132,8 @@ export const incidentAnalysisSchema = z.object({
   // === 기능 2/4 확장 (all optional) ===
   hitlStatus: hitlStatusSchema.optional(),
   analyzedAt: z.string().optional(),
+
+  // === 기능 5 확장 (all optional) ===
+  // feature5_summary.json 의 executive_markdown 원문.
+  executiveMarkdown: z.string().optional(),
 })

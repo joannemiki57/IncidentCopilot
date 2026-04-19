@@ -81,14 +81,18 @@ function getTagBorderColor(tag: Evidence["tag"]): string {
 }
 
 function TagChip({ tag }: { tag: NonNullable<Evidence["tag"]> }) {
-  const styles: Record<NonNullable<Evidence["tag"]>, string> = {
+  // Critical / Warning / Supporting 은 기존 디자인 그대로 유지.
+  // 신규 태그(Context / Conflicting) 는 아직 전용 디자인이 없어서 Supporting 과 동일한
+  // 중립 스타일로 렌더 — 태그 자체는 노출하되 새 시각적 treatment 는 도입하지 않는다.
+  const styles: Partial<Record<NonNullable<Evidence["tag"]>, string>> = {
     Critical: "bg-red-100 text-red-700",
     Warning: "bg-amber-100 text-amber-700",
     Supporting: "bg-slate-100 text-slate-600",
   }
+  const style = styles[tag] ?? "bg-slate-100 text-slate-600"
   return (
     <span
-      className={`ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${styles[tag]}`}
+      className={`ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${style}`}
     >
       {tag}
     </span>

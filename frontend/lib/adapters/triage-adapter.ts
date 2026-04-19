@@ -1,11 +1,14 @@
 import type {
   IncidentMetadata,
-  TeamIncidentOutput,
+  TeamRealOutput,
+  TeamTriageResults,
   TriageResult,
 } from "../types"
 
-export function adaptTeamTriage(raw: TeamIncidentOutput): TriageResult {
-  const tr = raw["Triage Results"] ?? {}
+// 팀원 실제 포맷: raw.triage["Triage Results"] 경로에 들어있다.
+// 내부 필드는 기존 TeamTriageResults 와 호환되므로 그대로 재사용.
+export function adaptTeamTriage(raw: TeamRealOutput): TriageResult {
+  const tr: TeamTriageResults = raw.triage?.["Triage Results"] ?? {}
 
   const base: TriageResult = {
     service: (tr["Affected Service"] as string) ?? "Unknown Service",
@@ -19,7 +22,7 @@ export function adaptTeamTriage(raw: TeamIncidentOutput): TriageResult {
       (tr["Error Category"] as string) ??
       (tr["Primary Category"] as string) ??
       "Unknown_Error",
-    confidence: (tr["Confidence Score"] as number) ?? 0.5,
+    confidence: clamp01((tr["Confidence Score"] as number) ?? 0.5),
   }
 
   // === 기능 1 확장 추출 ===
@@ -36,10 +39,13 @@ export function adaptTeamTriage(raw: TeamIncidentOutput): TriageResult {
   return base
 }
 
-export function adaptTeamMetadata(raw: TeamIncidentOutput): IncidentMetadata {
+export function adaptTeamMetadata(raw: TeamRealOutput): IncidentMetadata {
   // 팀 원본에서 "Extracted Metadata" 쪽이 우선, 없으면 "Context Metadata" 사용.
-  // 두 블록 모두 같은 TeamMetadataBlock 모양이라 구조는 동일.
-  const meta = raw["Extracted Metadata"] ?? raw["Context Metadata"] ?? {}
+  // 실제 포맷은 "Context Metadata" 키로 내려오는 경우가 많다.
+  const meta =
+    raw.triage?.["Extracted Metadata"] ??
+    raw.triage?.["Context Metadata"] ??
+    {}
   const ids = meta["Identifiers"] ?? {}
 
   return {
@@ -49,7 +55,11 @@ export function adaptTeamMetadata(raw: TeamIncidentOutput): IncidentMetadata {
       ipAddresses: ids.ip_addresses as string[] | undefined,
       ports: ids.ports as string[] | undefined,
     },
-    rawLogSample: (raw["Input Log"] as string) ?? "",
+    // 팀원 실제 포맷은 log_raw. 이전 호환용 "Input Log" 도 살려둔다.
+    rawLogSample:
+      (raw.triage?.log_raw as string) ??
+      (raw.triage?.["Input Log"] as string) ??
+      "",
   }
 }
 
@@ -98,4 +108,10 @@ function normalizePersistenceState(
   if (raw === "Starting" || raw === "Ongoing") return raw
   if (raw === "Persistent" || raw === "Transient") return raw
   return undefined
+}
+
+function clamp01(n: number): number {
+  if (n < 0) return 0
+  if (n > 1) return 1
+  return n
 }

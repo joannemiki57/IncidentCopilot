@@ -21,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useIncidentStore, type ScenarioHint } from "@/lib/store"
 
 // 각 시나리오별 대표 로그 스니펫. Try sample 선택 시 textarea에 자동 주입된다.
+// "latest" 는 팀원 feature-split 파이프라인 출력을 라이브로 불러오는 경로로,
+// 현재는 HDFS 시나리오 기반이라 관련 로그 스니펫을 그대로 프리뷰로 쓴다.
 const SAMPLE_LOGS: Record<ScenarioHint, string> = {
   "db-saturation":
     "2026-04-18 10:15:30 FATAL: DB connection pool exhausted. 0 active connections available.\n2026-04-18 10:15:28 WARN db.pool: active=100/100 queued=47\n2026-04-18 10:14:22 INFO deploy: applied config diff -db_pool_size=200 +db_pool_size=100",
@@ -28,15 +30,20 @@ const SAMPLE_LOGS: Record<ScenarioHint, string> = {
     "2026-04-18 10:16:05 ERROR dfs.DataNode: Connection refused from 192.168.1.10. Timeout during block replication.\n2026-04-18 10:16:10 WARN dfs.NameNode: Missing heartbeat from DataNode 192.168.1.10",
   "bgl-hardware":
     "- 1117838570 2005.06.03 R02-M1-N0-C:J12-U11 2005-06-03-15.42.50.675872 R02-M1-N0-C:J12-U11 RAS KERNEL INFO instruction cache parity error corrected",
+  latest:
+    "2026-04-19 02:17:27 ERROR dfs.DataNode$PacketResponder: PacketResponder for block blk_123 terminates with error: Connection refused\n[Loaded from live pipeline output — data/feature1..5.json]",
 }
 
 const SAMPLE_LABELS: Record<ScenarioHint, string> = {
   "db-saturation": "DB saturation (checkout failure)",
   "hdfs-failure": "HDFS DataNode failure",
   "bgl-hardware": "BGL hardware parity error",
+  latest: "Try latest (real pipeline output)",
 }
 
+// 드롭다운 최상단이 "latest" — 가장 최근 실제 파이프라인 결과. 기존 3개 샘플은 그 뒤로.
 const SAMPLE_ORDER: ScenarioHint[] = [
+  "latest",
   "db-saturation",
   "hdfs-failure",
   "bgl-hardware",

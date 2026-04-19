@@ -1,31 +1,65 @@
+// /api/analyze
+//
+// 두 가지 입력 포맷을 모두 지원한다:
+//   1) 통합 포맷  (data/{scenario}.json) — scenarioHint: db-saturation / hdfs-failure / bgl-hardware
+//   2) feature-split (data/feature1..5.json) — scenarioHint: "latest"
+//
+// 어느 쪽이든 loader 가 통일된 TeamRealOutput 구조로 정규화해 주고, 이후 조립 로직은 동일.
+// 실제 파일 읽기/조립이 실패하면 mocks/ui/*.json 으로 폴백한다
+// (latest 에는 대응되는 mock 이 없으므로 fallback 시 hdfs-failure mock 으로 내려준다).
+//
+// 조립 로직 자체는 lib/pipeline/assemble-incident.ts 에 있으며,
+// 라우트와 scripts/smoke-real-data.ts 가 같은 구현을 공유한다.
+
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 
 import { NextRequest, NextResponse } from "next/server"
 
+import { loadFromFeatureFiles, loadIntegrated } from "@/lib/adapters/loader"
+import {
+  assembleFromRealOutput,
+  looksLikeTeamRealOutput,
+} from "@/lib/pipeline/assemble-incident"
+import {
+  isFeatureSplitScenario,
+  resolveScenario,
+  SCENARIO_FILES,
+  SCENARIO_KEYS,
+  type IntegratedScenarioKey,
+  type ScenarioKey,
+} from "@/lib/pipeline/scenarios"
 import { incidentAnalysisSchema } from "@/lib/schema"
+import type { TeamRealOutput } from "@/lib/types"
 
-// scenarioHint → mock 파일 매핑. 이 map의 키가 곧 허용되는 scenarioHint.
-const SCENARIO_FILES = {
-  "db-saturation": "db-saturation.json",
-  "hdfs-failure": "hdfs-failure.json",
-  "bgl-hardware": "bgl-hardware.json",
-} as const
-
-type ScenarioKey = keyof typeof SCENARIO_FILES
-
-const DEFAULT_SCENARIO: ScenarioKey = "db-saturation"
 const ARTIFICIAL_DELAY_MS = 1500
-
-function resolveScenario(hint: unknown): ScenarioKey {
-  if (typeof hint === "string" && hint in SCENARIO_FILES) {
-    return hint as ScenarioKey
-  }
-  return DEFAULT_SCENARIO
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// mocks/ui/ 폴백용. feature-split 시나리오("latest") 는 전용 mock 이 없어서 hdfs-failure 로 대체.
+function resolveMockPath(scenario: ScenarioKey): string {
+  const integratedKey: IntegratedScenarioKey = isFeatureSplitScenario(scenario)
+    ? "hdfs-failure"
+    : scenario
+  return join(process.cwd(), "mocks", "ui", SCENARIO_FILES[integratedKey])
+}
+
+async function readJson(path: string): Promise<unknown> {
+  const text = await readFile(path, "utf-8")
+  return JSON.parse(text) as unknown
+}
+
+// scenario 키에 맞는 raw TeamRealOutput 을 로드한다.
+// 통합 포맷이면 단일 파일, feature-split 이면 5 개 파일 병합.
+async function loadRealRaw(
+  scenario: ScenarioKey
+): Promise<TeamRealOutput> {
+  if (isFeatureSplitScenario(scenario)) {
+    return loadFromFeatureFiles()
+  }
+  return loadIntegrated(scenario)
 }
 
 export async function GET() {
@@ -33,61 +67,74 @@ export async function GET() {
     ok: true,
     endpoint: "/api/analyze",
     method: "POST",
-    scenarios: Object.keys(SCENARIO_FILES),
+    scenarios: SCENARIO_KEYS,
   })
 }
 
 export async function POST(req: NextRequest) {
-  // body 파싱은 관대하게: 이상해도 fallback scenarioHint로 계속 진행한다.
   const rawBody: unknown = await req.json().catch(() => ({}))
-  const scenarioHint = (rawBody as { scenarioHint?: unknown })?.scenarioHint
-  const scenario = resolveScenario(scenarioHint)
+  // 과거 호환: scenarioId / scenarioHint 둘 다 수용. 같은 의미.
+  const body = rawBody as { scenarioHint?: unknown; scenarioId?: unknown }
+  const hint = body.scenarioHint ?? body.scenarioId
+  const scenario = resolveScenario(hint)
 
-  // LLM 호출처럼 보이게 하기 위한 인공 지연.
   await sleep(ARTIFICIAL_DELAY_MS)
 
-  const filePath = join(
-    process.cwd(),
-    "mocks",
-    "ui",
-    SCENARIO_FILES[scenario]
-  )
-
-  let fileRaw: string
+  // --- 1) 실제 팀원 데이터 시도 ---
+  let realRaw: TeamRealOutput | undefined
+  let realReadError: string | null = null
   try {
-    fileRaw = await readFile(filePath, "utf-8")
+    realRaw = await loadRealRaw(scenario)
+  } catch (err) {
+    realReadError = err instanceof Error ? err.message : String(err)
+  }
+
+  if (realRaw && looksLikeTeamRealOutput(realRaw)) {
+    const assembled = assembleFromRealOutput(scenario, realRaw)
+    const validated = incidentAnalysisSchema.safeParse(assembled)
+    if (validated.success) {
+      return NextResponse.json(validated.data)
+    }
+    // 실제 데이터가 있는데 조립 결과가 스키마 실패. 디버깅용으로 상세 로그를 남기고
+    // 폴백을 시도 — 운영에서 UI가 죽는 것보단 mock 으로라도 렌더하는 게 낫다.
+    console.error("[api/analyze] real-data schema validation failed", {
+      scenario,
+      issues: validated.error.issues.map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+      })),
+    })
+  } else if (realReadError) {
+    console.warn("[api/analyze] real-data read failed, falling back", {
+      scenario,
+      error: realReadError,
+    })
+  }
+
+  // --- 2) 폴백: mocks/ui (이미 UI 모델 모양) ---
+  const mockPath = resolveMockPath(scenario)
+  let mockRaw: unknown
+  try {
+    mockRaw = await readJson(mockPath)
   } catch (err) {
     return NextResponse.json(
       {
-        error: "mock_read_failed",
+        error: "both_real_and_mock_read_failed",
         scenario,
-        message: err instanceof Error ? err.message : String(err),
+        realError: realReadError,
+        mockError: err instanceof Error ? err.message : String(err),
       },
       { status: 500 }
     )
   }
 
-  let parsedJson: unknown
-  try {
-    parsedJson = JSON.parse(fileRaw)
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: "mock_json_parse_failed",
-        scenario,
-        message: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500 }
-    )
-  }
-
-  const validated = incidentAnalysisSchema.safeParse(parsedJson)
-  if (!validated.success) {
+  const validatedMock = incidentAnalysisSchema.safeParse(mockRaw)
+  if (!validatedMock.success) {
     return NextResponse.json(
       {
         error: "mock_schema_validation_failed",
         scenario,
-        issues: validated.error.issues.map((issue) => ({
+        issues: validatedMock.error.issues.map((issue) => ({
           path: issue.path.length > 0 ? issue.path.join(".") : "<root>",
           message: issue.message,
         })),
@@ -96,5 +143,5 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  return NextResponse.json(validated.data)
+  return NextResponse.json(validatedMock.data)
 }

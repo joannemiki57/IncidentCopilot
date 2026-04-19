@@ -64,11 +64,20 @@ export interface Evidence {
 
   // === 기능 2 확장 (all optional) ===
   // 팀원 raw 포맷의 [Critical] / [Warning] / [Supporting] 접두어에서 뽑는다.
-  tag?: "Critical" | "Warning" | "Supporting"
+  // feature-split 포맷에서는 category+delta_ratio+weakens_hypothesis 조합으로 유도:
+  //   SUPPORT & delta>=10 → Critical, SUPPORT & delta>=2 → Warning, SUPPORT → Supporting,
+  //   CONTEXT → Context, weakens_hypothesis !== null → Conflicting.
+  // UI 에 Context/Conflicting 표시가 아직 없다면 태그만 들어가고 스타일은 fallback.
+  tag?: "Critical" | "Warning" | "Supporting" | "Context" | "Conflicting"
   // metric 기반 증거일 때 baseline / current / delta 표시. 문자열 그대로 UI에 실린다.
   baseline?: string
   current?: string
   delta?: string
+  // 팀원 실제 포맷에서 evidence_id 접두어로 구분되는 원천 타입 (LOG-/METRIC-/EVENT-).
+  // 아이콘 / 배지 차등 렌더에 쓰기 위한 force-taxonomy.
+  sourceType?: "log" | "metric" | "event"
+  // 드릴다운 링크 (grafana:// kibana:// 등). feature3_evidence 에서 직접 전달됨.
+  drilldownUrl?: string
 }
 
 export interface Action {
@@ -77,6 +86,11 @@ export interface Action {
   urgency: "immediate" | "verify" | "followup"
   risk?: "none" | "low" | "medium" | "high"
   rationale?: string
+
+  // === 기능 4 확장 (all optional) ===
+  // 팀원 action_plan.reversibility 그대로 ("Full" / "Partial" / "Irreversible" 등).
+  // rationale 내부에도 요약 문구로 들어가지만, 별도 필드로 노출해 UI 가 배지 등에서 직접 쓸 수 있게 한다.
+  reversibility?: string
 }
 
 export interface ExecutiveSummary {
@@ -108,4 +122,9 @@ export interface IncidentAnalysis {
   hitlStatus?: "Awaiting Approval" | "Auto-Executable"
   // 분석이 돌아간 시점 (incident 발생 시점과 분리).
   analyzedAt?: string
+
+  // === 기능 5 확장 (all optional) ===
+  // 팀원 feature5_summary.json 의 executive_markdown 원문. executiveSummary 와 달리
+  // 사람이 읽는 이그제큐티브용 요약. UI 가 rendering 방식을 자유롭게 선택하도록 원문 그대로 전달.
+  executiveMarkdown?: string
 }

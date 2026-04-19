@@ -3,7 +3,13 @@ import { create } from "zustand"
 import { incidentAnalysisSchema } from "@/lib/schema"
 import type { IncidentAnalysis } from "@/lib/types"
 
-export type ScenarioHint = "db-saturation" | "hdfs-failure" | "bgl-hardware"
+// "latest" 는 팀원 feature-split 파이프라인(data/feature1..5.json) 경로로 라우팅된다.
+// 기존 3개 샘플은 단일 파일(data/{scenario}.json) 통합 포맷으로 그대로 동작.
+export type ScenarioHint =
+  | "db-saturation"
+  | "hdfs-failure"
+  | "bgl-hardware"
+  | "latest"
 
 interface IncidentStore {
   // 입력 상태

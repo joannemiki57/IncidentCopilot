@@ -250,7 +250,9 @@ CATEGORY_CONFIG: dict[str, dict] = {
         "signals": [
             ("connection limit", 0.92, False), ("deadlock", 0.92, True),
             ("max connections", 0.90, False), ("db error", 0.88, False),
-            ("sql error", 0.85, False),
+            ("sql error", 0.85, False), (r"\bn\+1\b", 0.95, True),
+            (r"\bquery\b", 0.80, True), (r"\bqueries\b", 0.80, True),
+            (r"\bselect\b", 0.75, True),
         ],
     },
     "Service_Down": {

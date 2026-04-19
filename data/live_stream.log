@@ -1,0 +1,4 @@
+2026-04-18 22:18:30 RAS KERNEL FATAL: Hardware failure on Node R12-M1
+2026-04-18 22:18:50 ERROR: Unable to acquire JDBC connection from pool
+2026-04-18 22:19:10 ERROR: connection pool exhausted with acquire jdbc timeout
+2023-10-01 12:00:00 ERROR Test error log for notification

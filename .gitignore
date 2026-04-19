@@ -61,5 +61,8 @@ target/
 results/
 backend/results/
 incident_audit_log.json
+# Per-run audit artifacts from backend/server.py live mode (data/live/<run_id>/).
+# Feature JSONs at data/ root are shared fixtures; only the per-run folder is transient.
+data/live/
 .DS_Store
 .DS_Store

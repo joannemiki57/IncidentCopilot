@@ -21,8 +21,13 @@ export function OptimizationCard() {
   const optimization = useIncidentStore((s) => s.analysisResult?.optimization)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
 
-  if (isAnalyzing) return <OptimizationSkeleton />
-  if (!optimization) return null
+  // optimization 은 non-fatal stage — 데이터가 없을 수도 있고 맨 마지막에 오기도 한다.
+  // 따라서 "분석 중인데 optimization stage 가 아직 도착 안 한 경우만" skeleton 을 그리고,
+  // 그 외(데이터 있음 / 분석 종료 후 optimization 없음)는 기존 정책을 유지.
+  if (!optimization) {
+    if (isAnalyzing) return <OptimizationSkeleton />
+    return null
+  }
 
   const { targetLocation, issueType, description, refactoringSuggestion, performanceDelta } =
     optimization

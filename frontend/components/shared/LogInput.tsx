@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, Play, Terminal } from "lucide-react"
+import { Check, ChevronDown, Loader2, Play, Terminal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,7 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Textarea } from "@/components/ui/textarea"
-import { useIncidentStore, type ScenarioHint } from "@/lib/store"
+import {
+  useIncidentStore,
+  type ScenarioHint,
+  type StageName,
+} from "@/lib/store"
 
 // 각 시나리오별 대표 로그 스니펫. Try sample 선택 시 textarea에 자동 주입된다.
 // "latest" 는 팀원 feature-split 파이프라인 출력을 라이브로 불러오는 경로로,
@@ -49,20 +53,36 @@ const SAMPLE_ORDER: ScenarioHint[] = [
   "bgl-hardware",
 ]
 
+// 라이브 SSE 스트림이 들어오는 순서. 백엔드 _run_pipeline 의 yield 순서와 동일해야
+// progress dot 의 정렬이 맞는다.
+const STAGE_ORDER: readonly { key: StageName; label: string }[] = [
+  { key: "triage", label: "Triage" },
+  { key: "rca", label: "RCA" },
+  { key: "evidence", label: "Evidence" },
+  { key: "action_plan", label: "Action" },
+  { key: "summary", label: "Summary" },
+  { key: "optimization", label: "Optim" },
+] as const
+
 export default function LogInput() {
   const logInput = useIncidentStore((s) => s.logInput)
   const setLogInput = useIncidentStore((s) => s.setLogInput)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
   const analyze = useIncidentStore((s) => s.analyze)
+  const analyzeStream = useIncidentStore((s) => s.analyzeStream)
+  const completedStages = useIncidentStore((s) => s.completedStages)
   const error = useIncidentStore((s) => s.error)
 
+  // Play 버튼은 라이브 파이프라인으로 직결된다. textarea 내용이 FastAPI 로 흘러가서
+  // stage 단위로 카드들이 채워진다. 기존 Try sample 드롭다운(데모 JSON 로더)은 건드리지 않음.
   const handleAnalyze = () => {
     if (isAnalyzing || logInput.trim().length === 0) return
-    void analyze()
+    void analyzeStream()
   }
 
   const handleSample = (hint: ScenarioHint) => {
     // textarea에 시나리오 샘플 로그를 채우고 바로 해당 scenarioHint로 분석을 시작한다.
+    // 샘플 플로우는 프리컴파일된 JSON fixture 경로 — 데모 용도로 유지.
     setLogInput(SAMPLE_LOGS[hint])
     void analyze(hint)
   }
@@ -122,14 +142,53 @@ export default function LogInput() {
         )}
       </CardContent>
       <CardFooter className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-mono text-muted-foreground">
-          {logInput.trim().length > 0
-            ? `${logInput.split(/\n/).length} lines · ${logInput.length} chars`
-            : "ready for input"}
+        <div className="flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
+          <span>
+            {logInput.trim().length > 0
+              ? `${logInput.split(/\n/).length} lines · ${logInput.length} chars`
+              : "ready for input"}
+          </span>
+          {(isAnalyzing || completedStages.length > 0) && (
+            <span className="flex items-center gap-1.5">
+              {STAGE_ORDER.map(({ key, label }) => {
+                const done = completedStages.includes(key)
+                // 진행 중 stage = "다음 stage" — 가장 최근 완료 stage 바로 다음.
+                const currentIdx = STAGE_ORDER.findIndex(
+                  (s) => !completedStages.includes(s.key)
+                )
+                const inflight =
+                  isAnalyzing &&
+                  currentIdx >= 0 &&
+                  STAGE_ORDER[currentIdx].key === key
+                return (
+                  <span
+                    key={key}
+                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px] text-[9px] uppercase tracking-wider transition-colors ${
+                      done
+                        ? "bg-[--color-success]/15 text-[--color-success]"
+                        : inflight
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted/40 text-muted-foreground/50"
+                    }`}
+                    title={label}
+                  >
+                    {done ? (
+                      <Check className="size-2.5" />
+                    ) : inflight ? (
+                      <Loader2 className="size-2.5 animate-spin" />
+                    ) : (
+                      <span className="size-1 rounded-full bg-current" />
+                    )}
+                    {label}
+                  </span>
+                )
+              })}
+            </span>
+          )}
         </div>
         <Button onClick={handleAnalyze} disabled={analyzeDisabled}>
           <Play className="size-3.5" />
-          {isAnalyzing ? "Analyzing..." : "Analyze"}
+          {isAnalyzing ? "Streaming..." : "Analyze"}
         </Button>
       </CardFooter>
     </Card>

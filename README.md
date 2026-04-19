@@ -1,28 +1,28 @@
 # Incident Copilot
 
-로그를 붙여 넣으면 **트리아지 → 가설·RCA → 근거 → 액션 플랜 → 요약 → 코드 최적화 제안**까지 한 번에 따라갈 수 있는 인시던트 대응용 웹 콘솔입니다. Next.js 프론트엔드와 Python(FastAPI) 백엔드로 구성되어 있으며, 실시간 분석은 **Server-Sent Events(SSE)** 로 단계별로 스트리밍됩니다.
+A web console for incident response: paste raw logs and walk through **triage → hypotheses & RCA → evidence → action plan → executive summary → code optimization hints** in one flow. The stack is a **Next.js** frontend and a **Python (FastAPI)** backend; live analysis streams stage-by-stage over **Server-Sent Events (SSE)**.
 
-## 주요 기능
+## Features
 
-| 단계 | 설명 |
-|------|------|
-| **Triage** | 로그 기반 초기 분류·심각도 |
-| **Hypothesis / RCA** | 원인 가설 순위 및 근본 원인 분석 |
-| **Evidence** | 근거 항목 정리 |
-| **Action plan** | HITL 게이트가 있는 실행 가능한 런북 |
-| **Executive summary** | 역할(SRE / Executive 등)에 맞는 요약 |
-| **Optimization** | 관련 코드·설정에 대한 최적화 힌트 |
+| Stage | Description |
+|------|-------------|
+| **Triage** | Initial classification and severity from logs |
+| **Hypothesis / RCA** | Ranked cause hypotheses and root-cause analysis |
+| **Evidence** | Structured supporting evidence |
+| **Action plan** | Runnable runbook steps with HITL gates |
+| **Executive summary** | Role-aware briefings (e.g. SRE vs executive) |
+| **Optimization** | Hints for related code or configuration |
 
-데모·통합 시나리오용 JSON은 `data/`·`frontend/mocks/` 에 있으며, 라이브 실행 시 단계별 산출물은 `data/live/<run_id>/` 에도 기록됩니다.
+Demo and integrated scenarios live under `data/` and `frontend/mocks/`. Each live run can also persist per-stage JSON under `data/live/<run_id>/` for an audit trail aligned with the feature-split format the UI loaders expect.
 
-## 사전 요구 사항
+## Prerequisites
 
-- **Node.js** 20+ (프론트엔드)
-- **Python** 3.10+ (백엔드)
+- **Node.js** 20+ (frontend)
+- **Python** 3.10+ (backend)
 
-## 빠른 시작
+## Quick start
 
-### 1. 백엔드 (FastAPI, SSE)
+### 1. Backend (FastAPI, SSE)
 
 ```bash
 cd backend
@@ -30,12 +30,12 @@ pip install -r requirements.txt
 uvicorn server:app --reload --port 8000
 ```
 
-- 스트리밍 엔드포인트: `POST /api/analyze/stream`
-- 헬스체크: `GET /health`
+- Streaming endpoint: `POST /api/analyze/stream`
+- Health: `GET /health`
 
-### 2. 프론트엔드 (Next.js)
+### 2. Frontend (Next.js)
 
-별도 터미널에서:
+In a second terminal:
 
 ```bash
 cd frontend
@@ -43,30 +43,72 @@ npm install
 npm run dev
 ```
 
-브라우저에서 [http://localhost:3000](http://localhost:3000) 을 엽니다. 기본적으로 Next의 `/api/analyze/stream` 이 로컬 백엔드 `http://localhost:8000` 으로 프록시합니다.
+Open [http://localhost:3000](http://localhost:3000). By default, the Next.js route `/api/analyze/stream` proxies to the FastAPI server at `http://localhost:8000`.
 
-### 환경 변수
+### Environment variables
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `INCIDENT_COPILOT_BACKEND_URL` | FastAPI 베이스 URL (Next 서버 사이드 프록시용) | `http://localhost:8000` |
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `INCIDENT_COPILOT_BACKEND_URL` | FastAPI base URL (used by the Next.js server-side proxy) | `http://localhost:8000` |
 
-배포 시 백엔드 URL만 맞추면 동일 출처로 SSE를 유지할 수 있습니다.
+Set this in deployment so the browser keeps same-origin access to SSE while the app server talks to your API.
 
-## 저장소 구조
+## Repository layout
 
 ```
-backend/          # 엔진 모듈 + FastAPI server (라이브 SSE)
-frontend/         # Next.js 16 앱, UI·어댑터·API 라우트
-data/             # 시나리오·피처별 JSON 샘플
-prompts/          # 프롬프트 관련 자료
+backend/          # Engine modules + FastAPI app (live SSE)
+frontend/       # Next.js app, UI, adapters, API routes
+data/           # Sample scenario / per-feature JSON
+prompts/        # Prompt-related assets
 ```
 
-## 스크립트 (프론트엔드)
+## Frontend scripts
 
-- `npm run build` — 프로덕션 빌드
+- `npm run build` — production build
 - `npm run lint` — ESLint
 
-## 라이선스
+## Architecture
 
-이 저장소에 별도 라이선스 파일이 없습니다. 사용·배포 전 조직 정책에 맞게 확인하세요.
+### System overview
+
+The browser only talks to the **Next.js** app. The app’s **Route Handler** at `/api/analyze/stream` forwards the client’s POST to **FastAPI** and pipes the SSE stream back unchanged. That avoids CORS in the browser, keeps a single place for auth or rate limits later, and works cleanly behind hosts like Vercel.
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI[React UI + Zustand]
+  end
+  subgraph Next["Next.js (Node)"]
+    Proxy["/api/analyze/stream\nRoute Handler"]
+  end
+  subgraph FastAPI["FastAPI (server.py)"]
+    SSE["POST /api/analyze/stream\nSSE stream"]
+    ENG["Pipeline engines\n(F1–F6)"]
+    SSE --> ENG
+  end
+  UI -->|POST + SSE| Proxy
+  Proxy -->|forward body + stream| SSE
+  ENG -->|optional| FS["Per-run JSON under data/live/"]
+```
+
+### Pipeline stages (backend)
+
+For each analyze request, the live server runs the engines in a fixed order and emits one SSE `stage` event after each step:
+
+1. **Triage** — `incident_triage` (`incident_triage_poc`)
+2. **RCA** — `AdvancedRCAEngine`
+3. **Evidence** — `EvidenceNormalizer` (normalized items for the UI)
+4. **Action plan** — `ActionPlanEngine` (plan + safety evaluation)
+5. **Summary** — `ExecutiveSummaryEngine` (SRE and Executive markdown in one payload)
+6. **Optimization** — `CodeOptimizationEngine` (omitted from the stream when there is nothing to show; the UI hides the card)
+
+The UI maps each payload through **adapters** (`frontend/lib/adapters/`) into a consistent view model consumed by cards (triage, hypotheses, evidence, actions, summary, optimization).
+
+### Data paths
+
+- **Integrated / mock mode**: JSON under `data/` or `frontend/mocks/ui/` is loaded by adapters for demos without a running backend.
+- **Live mode**: the FastAPI stream drives the UI; intermediate JSON may be written under `data/live/<run_id>/` for debugging and parity with the split file layout.
+
+### License
+
+No `LICENSE` file is included in this repository. Confirm terms with your organization before use or distribution.

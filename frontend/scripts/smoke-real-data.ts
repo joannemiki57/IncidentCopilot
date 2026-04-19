@@ -100,6 +100,14 @@ async function run(): Promise<void> {
         }`
       )
     }
+    if (result.optimization) {
+      const opt = result.optimization
+      console.log(
+        `   optimization : ${opt.issueType} @ ${opt.targetLocation} | ${opt.performanceDelta.current} → ${opt.performanceDelta.estimated} (${opt.performanceDelta.impact}) | otherMetrics=${opt.performanceDelta.otherMetrics?.length ?? 0}`
+      )
+    } else {
+      console.log(`   optimization : -`)
+    }
     console.log("")
   }
 

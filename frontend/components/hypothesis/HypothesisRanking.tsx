@@ -24,8 +24,8 @@ export function HypothesisRanking() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Root cause hypotheses</CardTitle>
-          <span className="text-muted-foreground text-xs">
+          <CardTitle className="text-base">Root cause hypotheses</CardTitle>
+          <span className="text-muted-foreground text-[11px] font-mono">
             {sorted.length} candidates
           </span>
         </div>
@@ -50,14 +50,14 @@ function HypothesisRankingSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
+        <div className="h-6 w-48 animate-pulse rounded bg-muted/60" />
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-20 w-full animate-pulse rounded bg-slate-200"
+              className="h-20 w-full animate-pulse rounded bg-muted/60"
             />
           ))}
         </div>

@@ -225,6 +225,36 @@ interface TeamRealEvidenceItem {
   [key: string]: unknown
 }
 
+// === 팀원 feature6_optimization.json 원본 shape ===
+// 백엔드 CodeOptimizationEngine.analyze() 반환값을 그대로 직렬화한 포맷.
+// 실제 파싱/정규화는 optimization-adapter 에서 방어적으로 처리한다.
+interface TeamRealOptimizationPerformanceDelta {
+  metric?: string
+  current?: string
+  estimated?: string
+  // "79.2% reduction" 같은 문자열 원문 그대로.
+  impact?: string
+  other_metrics?: Array<{
+    name?: string
+    before?: string
+    after?: string
+    gain?: string
+    [key: string]: unknown
+  }>
+  [key: string]: unknown
+}
+
+interface TeamRealOptimization {
+  target_location?: string
+  // "N+1 Query" | "Memory Leak" | "Heavy Computing" | "Generic Inefficiency" | 기타 확장.
+  issue_type?: string
+  description?: string
+  // 개행 포함 코드 스니펫 원문. 주석 (// ...) 과 코드가 섞여 내려옴.
+  refactoring_suggestion?: string
+  performance_delta?: TeamRealOptimizationPerformanceDelta
+  [key: string]: unknown
+}
+
 interface TeamRealOutput {
   scenario_name?: string
   triage?: TeamRealTriageBlock
@@ -239,6 +269,8 @@ interface TeamRealOutput {
   evidence?: TeamRealEvidenceItem[]
   // feature5_summary.json 의 executive_markdown 원문. 통합 포맷에는 없음.
   executive_markdown?: string
+  // feature6_optimization.json 의 파싱 전 원본. 파일 없을 때는 undefined.
+  optimization?: TeamRealOptimization
 
   [key: string]: unknown
 }
@@ -255,4 +287,6 @@ export type {
   TeamRealActionPlan,
   TeamRealSafetyEvaluation,
   TeamRealEvidenceItem,
+  TeamRealOptimization,
+  TeamRealOptimizationPerformanceDelta,
 }

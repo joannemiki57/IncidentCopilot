@@ -31,11 +31,23 @@ export function EvidenceList() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle>Evidence</CardTitle>
-          <span className="text-muted-foreground text-xs text-right">
-            {selectedHypothesis
-              ? `Showing evidence for: ${selectedHypothesis.title}`
-              : "Showing all evidence · Click a hypothesis above to filter"}
+          <CardTitle className="text-base">Evidence</CardTitle>
+          <span className="text-muted-foreground text-[11px] text-right">
+            {selectedHypothesis ? (
+              <>
+                <span className="text-muted-foreground/60">scoped to </span>
+                <span className="font-mono text-foreground/80">
+                  {selectedHypothesis.title}
+                </span>
+              </>
+            ) : (
+              <>
+                Showing all evidence{" "}
+                <span className="text-muted-foreground/60">
+                  · click a hypothesis to filter
+                </span>
+              </>
+            )}
           </span>
         </div>
       </CardHeader>
@@ -61,14 +73,14 @@ function EvidenceListSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <div className="h-6 w-32 animate-pulse rounded bg-slate-200" />
+        <div className="h-6 w-32 animate-pulse rounded bg-muted/60" />
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-14 w-full animate-pulse rounded bg-slate-200"
+              className="h-14 w-full animate-pulse rounded bg-muted/60"
             />
           ))}
         </div>

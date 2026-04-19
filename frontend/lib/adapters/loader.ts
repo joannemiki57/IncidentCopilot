@@ -25,6 +25,7 @@ import { join } from "node:path"
 import type {
   TeamRealActionPlan,
   TeamRealEvidenceItem,
+  TeamRealOptimization,
   TeamRealOutput,
   TeamRealRootCauseAnalysis,
   TeamRealSafetyEvaluation,
@@ -42,7 +43,33 @@ const FEATURE_FILES = {
   evidence: "feature3_evidence.json",
   actionPlan: "feature4_action_plan.json",
   summary: "feature5_summary.json",
+  // feature6 은 백엔드 초기 버전에선 feature5 SRE 마크다운에 inline embed 되던 블록이었는데,
+  // 별도 파일로 분리됐다. 파일이 아직 안 내려오는 환경도 있을 수 있어 loader 가 방어적으로 읽는다.
+  optimization: "feature6_optimization.json",
 } as const
+
+// data/feature6_optimization.json 을 조용히 읽는다.
+// 파일이 아예 없거나 JSON 파싱에 실패하면 undefined 반환 → 카드 자체가 렌더되지 않음.
+// (기능 1~5 와 달리 feature6 은 파이프라인 필수 출력이 아니라 선택 블록이라 이 정책이 적절.)
+export async function loadOptimizationFileOptional(): Promise<
+  TeamRealOptimization | undefined
+> {
+  const path = join(dataDir(), FEATURE_FILES.optimization)
+  try {
+    return await readJson<TeamRealOptimization>(path)
+  } catch (err) {
+    // ENOENT / JSON parse 모두 여기로. 로그만 남기고 undefined.
+    const code = (err as NodeJS.ErrnoException)?.code
+    if (code !== "ENOENT") {
+      console.warn(
+        `[loader] optional feature6 read failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      )
+    }
+    return undefined
+  }
+}
 
 // frontend/ 에서 한 단계 위로 올라가면 incident-copilot/data/ 디렉터리.
 // route.ts 는 process.cwd() 가 frontend/ 이고, 스크립트에서 쓸 때도 동일.
@@ -64,7 +91,14 @@ export async function loadIntegrated(
 ): Promise<TeamRealOutput> {
   const filename = SCENARIO_FILES[scenario]
   const path = join(dataDir(), filename)
-  return readJson<TeamRealOutput>(path)
+  // 통합 포맷 파일에 optimization 이 inline 으로 들어있을 수도 있고,
+  // 별도 파일로 분리됐을 수도 있다. 파일 내부가 우선, 없으면 feature6 파일로 보강.
+  const base = await readJson<TeamRealOutput>(path)
+  if (!base.optimization) {
+    const extra = await loadOptimizationFileOptional()
+    if (extra) base.optimization = extra
+  }
+  return base
 }
 
 // ==================================================================
@@ -96,13 +130,15 @@ export async function loadFromFeatureFiles(): Promise<TeamRealOutput> {
   const base = dataDir()
 
   // 병렬 로드로 지연 최소화. 한 파일이라도 실패하면 Promise.all 이 reject → 상위에서 폴백.
-  const [triage, rca, evidence, actionPlanWrapper, summaryWrapper] =
+  // feature6 은 optional 이라 따로 try/catch 로 감싼 loadOptimizationFileOptional 로 읽는다.
+  const [triage, rca, evidence, actionPlanWrapper, summaryWrapper, optimization] =
     await Promise.all([
       readJson<TeamRealTriageBlock>(join(base, FEATURE_FILES.triage)),
       readJson<Feature2Wrapper>(join(base, FEATURE_FILES.rca)),
       readJson<TeamRealEvidenceItem[]>(join(base, FEATURE_FILES.evidence)),
       readJson<Feature4Wrapper>(join(base, FEATURE_FILES.actionPlan)),
       readJson<Feature5Wrapper>(join(base, FEATURE_FILES.summary)),
+      loadOptimizationFileOptional(),
     ])
 
   const merged: TeamRealOutput = {
@@ -127,6 +163,8 @@ export async function loadFromFeatureFiles(): Promise<TeamRealOutput> {
       typeof summaryWrapper.executive_markdown === "string"
         ? summaryWrapper.executive_markdown
         : undefined,
+    // feature6_optimization.json 이 없으면 undefined 로 조용히 흘려보낸다.
+    optimization,
   }
 
   return merged

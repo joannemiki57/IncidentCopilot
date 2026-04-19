@@ -13,6 +13,7 @@ import {
   adaptTeamExecutiveSummary,
   adaptTeamHypotheses,
   adaptTeamMetadata,
+  adaptTeamOptimization,
   adaptTeamTriage,
 } from "../adapters"
 import type { IncidentAnalysis, TeamRealOutput } from "../types"
@@ -28,6 +29,7 @@ export function assembleFromRealOutput(
   const evidence = adaptTeamEvidence(raw)
   const actionPlan = adaptTeamActionPlan(raw)
   const executiveSummary = adaptTeamExecutiveSummary(raw, triage, hypotheses)
+  const optimization = adaptTeamOptimization(raw)
 
   const rca = raw.rca?.root_cause_analysis
   const hitl = rca?.hitl_status
@@ -79,6 +81,11 @@ export function assembleFromRealOutput(
     raw.executive_markdown.length > 0
   ) {
     result.executiveMarkdown = raw.executive_markdown
+  }
+  // feature6 최적화 블록: adapter 가 유효성 검사 통과한 경우에만 붙인다.
+  // null 이면 OptimizationCard 자체가 렌더되지 않음.
+  if (optimization) {
+    result.optimization = optimization
   }
 
   return result

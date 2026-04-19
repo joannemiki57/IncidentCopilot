@@ -32,16 +32,16 @@ export function ActionPlan() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recommended actions</CardTitle>
+        <CardTitle className="text-base">Recommended actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-5">
           {grouped.immediate.length > 0 && (
             <ActionGroup
               title="Immediate"
               icon={<Zap className="h-4 w-4" />}
               actions={grouped.immediate}
-              iconColor="text-red-600"
+              iconColor="text-[--color-critical]"
             />
           )}
           {grouped.verify.length > 0 && (
@@ -49,7 +49,7 @@ export function ActionPlan() {
               title="Verify"
               icon={<Search className="h-4 w-4" />}
               actions={grouped.verify}
-              iconColor="text-amber-600"
+              iconColor="text-[--color-warning]"
             />
           )}
           {grouped.followup.length > 0 && (
@@ -57,7 +57,7 @@ export function ActionPlan() {
               title="Follow-up"
               icon={<Clock className="h-4 w-4" />}
               actions={grouped.followup}
-              iconColor="text-slate-500"
+              iconColor="text-muted-foreground"
             />
           )}
         </div>
@@ -77,11 +77,13 @@ function ActionGroup({ title, icon, actions, iconColor }: ActionGroupProps) {
   return (
     <div>
       <div
-        className={`flex items-center gap-2 mb-3 text-sm font-medium ${iconColor}`}
+        className={`flex items-center gap-2 mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] ${iconColor}`}
       >
         {icon}
         <span>{title}</span>
-        <span className="text-slate-400 font-normal">({actions.length})</span>
+        <span className="text-muted-foreground/60 font-mono normal-case tracking-normal">
+          ({actions.length})
+        </span>
       </div>
       <div className="space-y-2">
         {actions.map((action) => (
@@ -93,10 +95,10 @@ function ActionGroup({ title, icon, actions, iconColor }: ActionGroupProps) {
 }
 
 const RISK_COLOR_MAP: Record<NonNullable<Action["risk"]>, string> = {
-  none: "bg-slate-100 text-slate-600",
-  low: "bg-green-100 text-green-700",
-  medium: "bg-amber-100 text-amber-700",
-  high: "bg-red-100 text-red-700",
+  none: "bg-muted/60 text-muted-foreground",
+  low: "bg-[--color-success]/15 text-[--color-success]",
+  medium: "bg-[--color-warning]/15 text-[--color-warning]",
+  high: "bg-[--color-critical]/15 text-[--color-critical]",
 }
 
 function ActionItem({ action }: { action: Action }) {
@@ -104,29 +106,39 @@ function ActionItem({ action }: { action: Action }) {
   const [checked, setChecked] = useState(false)
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3">
+    <div className="flex items-start gap-3 rounded-lg border border-border bg-card/60 p-3">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => setChecked(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-slate-300"
+        className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
       />
       <div className="flex-1 min-w-0">
         <p
           className={`text-sm leading-relaxed ${
-            checked ? "line-through text-slate-400" : "text-slate-800"
+            checked
+              ? "line-through text-muted-foreground/60"
+              : "text-foreground/90"
           }`}
         >
           {action.action}
         </p>
         {action.rationale && (
-          <p className="mt-1 text-xs text-slate-500">{action.rationale}</p>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+            {action.rationale}
+          </p>
+        )}
+        {action.reversibility && (
+          <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80">
+            <span className="opacity-60">reversibility:</span>
+            <span className="text-foreground/80">{action.reversibility}</span>
+          </div>
         )}
       </div>
       {action.risk && (
         <Badge
           variant="secondary"
-          className={`text-xs ${RISK_COLOR_MAP[action.risk] ?? ""}`}
+          className={`text-[10px] uppercase tracking-wide ${RISK_COLOR_MAP[action.risk] ?? ""}`}
         >
           {action.risk} risk
         </Badge>
@@ -139,14 +151,14 @@ function ActionPlanSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
+        <div className="h-6 w-48 animate-pulse rounded bg-muted/60" />
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-16 w-full animate-pulse rounded bg-slate-200"
+              className="h-16 w-full animate-pulse rounded bg-muted/60"
             />
           ))}
         </div>

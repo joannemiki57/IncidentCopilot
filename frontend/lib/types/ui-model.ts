@@ -101,6 +101,37 @@ export interface ExecutiveSummary {
   prevention: string
 }
 
+// === 기능 6: AI-driven Code Optimization ===
+// 팀원 feature6_optimization.json 출력. 사고 대응 이후 "코드 레벨에서 어떻게
+// 고쳐야 같은 사고가 재발 안 하는지"를 정량 델타 + 코드 스니펫으로 제안.
+// 기존 actionPlan (런북 레벨) 과 분리된 별도 도메인이라 독립 카드로 노출한다.
+export interface OptimizationPerformanceDelta {
+  metric: string
+  current: string
+  estimated: string
+  // "79.2% reduction" 같은 표현 그대로. UI 는 이 문자열을 배지로 쓴다.
+  impact: string
+  // 보조 지표들 (DB Queries, CPU Usage 등) — 패턴에 따라 0~N개. 비면 grid 자체 생략.
+  otherMetrics?: Array<{
+    name: string
+    before: string
+    after: string
+    gain: string
+  }>
+}
+
+export interface Optimization {
+  // 예: "DatabaseServiceService.java -> getDetails()"
+  targetLocation: string
+  // "N+1 Query" | "Memory Leak" | "Heavy Computing" | "Generic Inefficiency" | 기타.
+  // enum 으로 안 막는 이유: 백엔드가 새로운 안티패턴을 추가해도 프론트가 터지지 않도록.
+  issueType: string
+  description: string
+  // 개행 포함 코드 스니펫 원문. 주석 (// ...) 과 실제 코드가 섞여 내려옴.
+  refactoringSuggestion: string
+  performanceDelta: OptimizationPerformanceDelta
+}
+
 // === TBD === Track B 실험 후 확정
 // - hypothesis.confidence 타입 (number vs enum) 미확정
 // - evidence와 hypothesis 연결 방식 확정 필요
@@ -127,4 +158,8 @@ export interface IncidentAnalysis {
   // 팀원 feature5_summary.json 의 executive_markdown 원문. executiveSummary 와 달리
   // 사람이 읽는 이그제큐티브용 요약. UI 가 rendering 방식을 자유롭게 선택하도록 원문 그대로 전달.
   executiveMarkdown?: string
+
+  // === 기능 6 확장 (all optional) ===
+  // 팀원 feature6_optimization.json 의 파싱 결과. 없으면 OptimizationCard 자체가 렌더되지 않음.
+  optimization?: Optimization
 }

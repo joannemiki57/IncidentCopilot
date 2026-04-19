@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-import { Copy, Send } from "lucide-react"
+import { CheckCircle2, Copy, ShieldCheck, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -62,12 +62,12 @@ ${summary.prevention}
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <CardTitle>Executive summary</CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <CardTitle className="text-base">Executive summary</CardTitle>
             {hitlStatus && <HitlBadge status={hitlStatus} />}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={handleCopy}>
               <Copy className="h-3.5 w-3.5 mr-1.5" />
               {copied ? "Copied!" : "Copy"}
@@ -81,7 +81,7 @@ ${summary.prevention}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <h3 className="text-lg font-medium leading-snug">
+          <h3 className="text-base font-semibold leading-snug">
             {summary.headline}
           </h3>
 
@@ -107,16 +107,16 @@ function HitlBadge({
 }) {
   // HITL 상태는 두 분기뿐이니 삼항으로 내려도 괜찮지만,
   // 색상-텍스트-아이콘이 한 덩어리이기 때문에 status 별로 한 줄씩 명시적으로 잡아둔다.
-  const styles =
-    status === "Awaiting Approval"
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-green-50 text-green-700 border-green-200"
-  const icon = status === "Awaiting Approval" ? "🔴" : "✓"
+  const isBlocked = status === "Awaiting Approval"
+  const styles = isBlocked
+    ? "bg-[--color-critical]/15 text-[--color-critical] border-[--color-critical]/40"
+    : "bg-[--color-success]/15 text-[--color-success] border-[--color-success]/40"
+  const Icon = isBlocked ? ShieldCheck : CheckCircle2
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${styles}`}
     >
-      <span>{icon}</span>
+      <Icon className="size-3" />
       <span>{status}</span>
     </span>
   )
@@ -130,11 +130,11 @@ function SummarySection({
   content: string
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">
+    <div className="rounded-lg border border-border bg-muted/30 p-3">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
         {label}
       </div>
-      <p className="text-sm text-slate-700 leading-relaxed">{content}</p>
+      <p className="text-sm text-foreground/90 leading-relaxed">{content}</p>
     </div>
   )
 }
@@ -143,16 +143,16 @@ function ExecutiveSummarySkeleton() {
   return (
     <Card>
       <CardHeader>
-        <div className="h-6 w-40 animate-pulse rounded bg-slate-200" />
+        <div className="h-6 w-40 animate-pulse rounded bg-muted/60" />
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="h-8 w-3/4 animate-pulse rounded bg-slate-200" />
+          <div className="h-8 w-3/4 animate-pulse rounded bg-muted/60" />
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-20 w-full animate-pulse rounded bg-slate-200"
+                className="h-20 w-full animate-pulse rounded bg-muted/60"
               />
             ))}
           </div>

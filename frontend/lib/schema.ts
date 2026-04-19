@@ -117,6 +117,31 @@ export const executiveSummarySchema = z.object({
   prevention: z.string(),
 })
 
+// === Optimization (feature 6) ===
+// issueType 은 enum 으로 안 막는다 — 백엔드가 새 안티패턴을 내려도 500 안 나게.
+export const optimizationOtherMetricSchema = z.object({
+  name: z.string(),
+  before: z.string(),
+  after: z.string(),
+  gain: z.string(),
+})
+
+export const optimizationPerformanceDeltaSchema = z.object({
+  metric: z.string(),
+  current: z.string(),
+  estimated: z.string(),
+  impact: z.string(),
+  otherMetrics: z.array(optimizationOtherMetricSchema).optional(),
+})
+
+export const optimizationSchema = z.object({
+  targetLocation: z.string(),
+  issueType: z.string(),
+  description: z.string(),
+  refactoringSuggestion: z.string(),
+  performanceDelta: optimizationPerformanceDeltaSchema,
+})
+
 // === Top-level ===
 export const incidentAnalysisSchema = z.object({
   incidentId: z.string(),
@@ -136,4 +161,8 @@ export const incidentAnalysisSchema = z.object({
   // === 기능 5 확장 (all optional) ===
   // feature5_summary.json 의 executive_markdown 원문.
   executiveMarkdown: z.string().optional(),
+
+  // === 기능 6 확장 (all optional) ===
+  // feature6_optimization.json 파싱 결과. 없으면 OptimizationCard 가 렌더되지 않음.
+  optimization: optimizationSchema.optional(),
 })

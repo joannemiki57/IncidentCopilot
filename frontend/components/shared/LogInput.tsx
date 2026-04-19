@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Play, Terminal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -54,6 +54,7 @@ export default function LogInput() {
   const setLogInput = useIncidentStore((s) => s.setLogInput)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
   const analyze = useIncidentStore((s) => s.analyze)
+  const error = useIncidentStore((s) => s.error)
 
   const handleAnalyze = () => {
     if (isAnalyzing || logInput.trim().length === 0) return
@@ -72,10 +73,13 @@ export default function LogInput() {
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle>Incident logs</CardTitle>
+          <div className="space-y-1 min-w-0">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Terminal className="size-4 text-primary" />
+              Incident logs
+            </CardTitle>
             <CardDescription>
-              Paste raw logs or try a sample scenario
+              Paste raw logs or pick a sample scenario to stream through the pipeline
             </CardDescription>
           </div>
           <DropdownMenu>
@@ -108,12 +112,23 @@ export default function LogInput() {
           value={logInput}
           onChange={(event) => setLogInput(event.target.value)}
           placeholder="Paste incident logs here. Example: 2026-04-18 10:15:30 FATAL: DB connection pool exhausted..."
-          className="min-h-[180px] font-mono text-sm"
+          className="min-h-[160px] font-mono text-[13px] bg-background/60"
           disabled={isAnalyzing}
         />
+        {error && (
+          <div className="mt-3 rounded-md border border-[--color-critical]/40 bg-[--color-critical]/10 p-2.5 text-xs text-[--color-critical]">
+            <span className="font-mono">{error}</span>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-end">
+      <CardFooter className="flex items-center justify-between gap-3">
+        <div className="text-[11px] font-mono text-muted-foreground">
+          {logInput.trim().length > 0
+            ? `${logInput.split(/\n/).length} lines · ${logInput.length} chars`
+            : "ready for input"}
+        </div>
         <Button onClick={handleAnalyze} disabled={analyzeDisabled}>
+          <Play className="size-3.5" />
           {isAnalyzing ? "Analyzing..." : "Analyze"}
         </Button>
       </CardFooter>

@@ -32,7 +32,7 @@ class EvidenceNormalizer:
                 return iso_str[-8:]
             except: return "??:??:??"
 
-        # 1. Metrics
+               # 1. Metrics
         metrics = context.get("metrics_data", {})
         for m_name, data in metrics.items():
             current = data.get("current", 0)
@@ -40,7 +40,7 @@ class EvidenceNormalizer:
             limit = data.get("limit")
             window = data.get("baseline_window", "24h trailing avg")
             policy = data.get("policy", "Deviation from normal baseline")
-            ratio = current / baseline if baseline > 0 else 1.0
+            ratio = current / baseline if isinstance(baseline, (int, float)) and baseline > 0 else None
             
             signal_human = m_name.replace('_', ' ').replace('.', ' ').title()
             
@@ -48,9 +48,12 @@ class EvidenceNormalizer:
                 content = f"{signal_human} exceeded configured limit ({current}/{limit})"
                 category = "SUPPORT"
                 weakens = None
+            elif ratio is None:
+                content = f"{signal_human} baseline unavailable"
+                category = "CONTEXT"
+                weakens = None
             elif 0.8 <= ratio <= 1.2:
                 content = f"{signal_human} remained near baseline ({ratio:.1f}x)"
-                # Healthy signal: weakens specific hypothesis, not the leader
                 weakens = self._infer_weakened_hypothesis(m_name, top_hypotheses)
                 category = "WEAKEN" if weakens else "CONTEXT"
             elif ratio > 1.2:
@@ -70,13 +73,12 @@ class EvidenceNormalizer:
                 signal_name=m_name,
                 content=content,
                 observed_at=get_time_str(data.get("timestamp", incident_time)),
-                delta_ratio=ratio,
+                delta_ratio=ratio if ratio is not None else 0.0,
                 baseline_desc=window,
                 policy_desc=policy,
                 drilldown_url=f"grafana://metrics?query={m_name}&orgId=1&from=now-1h",
                 weakens_hypothesis=weakens
             ))
-
         # 2. Deployment
         if context.get("recent_deploy"):
             ts = context.get("deploy_timestamp", "Unknown")
@@ -104,36 +106,36 @@ class EvidenceNormalizer:
             ))
 
         # 3. Logs
-        log_raw = triage_result.get("log_raw", "")
+        log_raw = (triage_result.get("log_raw") or "").strip()
         log_raw_lower = log_raw.lower()
         persistence = triage_result.get("Triage Results", {}).get("Persistence", {})
         tmpl_id = triage_result.get("Context Metadata", {}).get("Template ID", "UNKNOWN")
         affected = triage_result.get("Triage Results", {}).get("Affected Service", "Unknown")
         
-        # Entity detection
-        subject = "Service connection"
-        if any(x in log_raw_lower for x in ["jdbc", "pool", "sql", "db", "database"]):
-            subject = "Internal DB connection"
-        elif any(x in log_raw_lower for x in ["api", "http", "url", "outbound"]):
-            subject = "Outbound API connection"
+        if log_raw:
+            subject = "Service connection"
+            if any(x in log_raw_lower for x in ["jdbc", "pool", "sql", "db", "database"]):
+                subject = "Internal DB connection"
+            elif any(x in log_raw_lower for x in ["api", "http", "url", "outbound"]):
+                subject = "Outbound API connection"
 
-        count = persistence.get("count", 1)
-        first_seen = get_time_str(persistence.get("first_seen", incident_time))
-        
-        evidence_graph.append(EvidenceItem(
-            evidence_id=f"LOG-{tmpl_id}",
-            category="SUPPORT",
-            signal_name="error_log",
-            content=f"{subject} failure: '{log_raw[:50]}...'",
-            observed_at=get_time_str(incident_time),
-            policy_desc="Error signal threshold monitoring",
-            drilldown_url=f"kibana://logs/viewer?template_id={tmpl_id}&time=now-15m",
-            aggregation_info={
-                "count": count,
-                "first_seen": first_seen,
-                "impact_service": affected
-            }
-        ))
+            count = persistence.get("count", 1)
+            first_seen = get_time_str(persistence.get("first_seen", incident_time))
+            
+            evidence_graph.append(EvidenceItem(
+                evidence_id=f"LOG-{tmpl_id}",
+                category="SUPPORT",
+                signal_name="error_log",
+                content=f"{subject} failure: '{log_raw[:50]}...'",
+                observed_at=get_time_str(incident_time),
+                policy_desc="Error signal threshold monitoring",
+                drilldown_url=f"kibana://logs/viewer?template_id={tmpl_id}&time=now-15m",
+                aggregation_info={
+                    "count": count,
+                    "first_seen": first_seen,
+                    "impact_service": affected
+                }
+            ))
 
         return evidence_graph
 

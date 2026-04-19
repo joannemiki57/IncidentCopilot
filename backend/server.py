@@ -157,13 +157,36 @@ def _write_stage_artifact(run_dir: str, filename: str, payload: Any) -> None:
         json.dump(_json_safe(payload), f, ensure_ascii=False, indent=2)
 
 
-def _build_default_context(log_text: str) -> dict:
+def _build_default_context(severity: str) -> dict:
     """Context fixture used when the request doesn't supply metrics.
 
-    The engines expect a metrics_data / metric_anomalies block even for logs
-    that don't have metric signals. We seed it with the same defaults the
-    existing demo pipelines use so RCA scoring stays sane.
+    Now dynamic: Returns healthy metrics for P4 logs, and anomalous metrics
+    for P1-P3 incidents to trigger valid RCA evidence.
     """
+    is_healthy = "P4" in severity
+    
+    if is_healthy:
+        return {
+            "metrics_data": {
+                "upstream.latency": {
+                    "current": 25,
+                    "baseline": 25,
+                    "baseline_window": "P95 over 24h trailing window",
+                    "policy": "Deviation from SLA target (250ms)",
+                },
+                "db.active_connections": {
+                    "current": 12,
+                    "baseline": 150,
+                    "limit": 400,
+                    "baseline_window": "Average over previous 1h",
+                    "policy": "Saturation check vs pool limit",
+                },
+            },
+            "metric_anomalies": [],
+            "recent_deploy": False,
+        }
+    
+    # Incident Mode: Inject anomalies to trigger RCA/Evidence diagnostic
     return {
         "metrics_data": {
             "upstream.latency": {
@@ -209,15 +232,31 @@ async def _run_pipeline(
     # before the first synchronous engine call hogs the event loop.
     await asyncio.sleep(0)
 
-    # --- Stage 1: Triage ------------------------------------------------
+    # --- Stage 1: Triage (Dual-Window for Recency) -----------------------
     try:
         tracker = PersistenceTracker()
-        # Seed the tracker so persistence.state leaves "Starting" for logs
-        # the user clearly wants treated as an incident. The same warmup is
-        # used in run_full_pipeline_demo.py.
-        for _ in range(6):
+        
+        # 1. Immediate Status Check (Last 50 lines) 
+        # For live mode, we prioritize what happened *just now*.
+        log_lines = log_text.splitlines()
+        recent_logs = "\n".join(log_lines[-50:]) if len(log_lines) > 50 else log_text
+
+        # 2. Main Triage (Full window for context)
+        # We run multiple passes for tracker warmup
+        for _ in range(3):
             incident_triage(log_text, tracker=tracker)
-        triage_result = incident_triage(log_text, tracker=tracker)
+        
+        # Determine the final triage result focusing on recency if a recovery signal is found
+        triage_result = incident_triage(recent_logs, tracker=tracker)
+        
+        # If recency check says it's healthy, but overall triage was still caught in error,
+        # we prioritize the recovery to ensure real-time UI response.
+        if triage_result.get("Triage Results", {}).get("Severity Level") == "P4 (Low)":
+            print("Recency-First: Detected recovery in latest lines. Overriding buffer inertia.")
+        else:
+            # Otherwise use full context for more detailed triage report
+            triage_result = incident_triage(log_text, tracker=tracker)
+
         triage_result["log_raw"] = log_text
         _write_stage_artifact(run_dir, "feature1_triage.json", triage_result)
         stages_completed.append("triage")
@@ -232,7 +271,8 @@ async def _run_pipeline(
     await asyncio.sleep(0.05)
 
     # --- Stage 2: RCA ---------------------------------------------------
-    context = _build_default_context(log_text)
+    severity = triage_result.get("Triage Results", {}).get("Severity Level", "P4")
+    context = _build_default_context(severity)
     try:
         rca_engine = AdvancedRCAEngine()
         rca_result = rca_engine.analyze(triage_result, context)

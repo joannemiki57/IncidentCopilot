@@ -142,6 +142,11 @@ class AdvancedRCAEngine:
                 "verification_steps": h.get("verification_steps", ["Verify log correlation."])
             })
 
+        # Special Case: If severity is P4 (Healthy) and no strong hypothesis (> 0.4) was found, 
+        # clear top hypotheses to avoid false positives.
+        sev_str = triage.get("Severity Level", "P4")
+        is_healthy = "P4" in sev_str
+
         # Apply Priority of Causality (Hierarchy Re-ranking)
         self._resolve_causality(scored_hypotheses, primary_cat)
 
@@ -150,9 +155,19 @@ class AdvancedRCAEngine:
         top_hypotheses = scored_hypotheses[:3]
 
         # Determine HITL (Human-in-the-Loop) Requirements based on Severity
-        sev_str = triage.get("Severity Level", "P4")
         is_high_severity = any(p in sev_str for p in ["P1", "P2"])
         
+        # --- Recovery State Logic ---
+        if is_healthy and (not top_hypotheses or top_hypotheses[0]["total_confidence"] < 0.4):
+            return {
+                "root_cause_analysis": {
+                    "top_hypotheses": [],
+                    "hitl_status": "Auto-Executable",
+                    "analyzed_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+                    "reasoning_context": "System is healthy. No anomalous patterns or causal evidence detected in current logs and metrics."
+                }
+            }
+
         # Enrich Top Hypotheses with Safety Metadata
         for h in top_hypotheses:
             h["recovery_workflow"] = {
@@ -211,19 +226,29 @@ class AdvancedRCAEngine:
         if h["id"] == "H_HW_2" and ctx.get("node_variance_detected"):
             metric_score = 0.3
 
-        # Collect Evidence IDs for UI Mapping
+        # Collect Evidence IDs for UI Mapping (STRICT SCOPING)
         evidence_ids = []
         if log_match:
-            # Synthetic ID based on Template ID or log type
-            tmpl_id = result.get("Context Metadata", {}).get("Template ID", "LOG-999")
-            evidence_ids.append(f"LOG-{tmpl_id}")
+            # Only claim the specific log lines that matched this hypothesis's signals
+            # Instead of a generic LOG-999, we search for the specific signal in the log
+            for sig in h["log_signals"]:
+                if sig.lower() in log_content:
+                    # Find a representative snippet for the UI
+                    match = re.search(re.escape(sig), log_content, re.IGNORECASE)
+                    if match:
+                        start = max(0, match.start() - 20)
+                        end = min(len(log_content), match.end() + 20)
+                        snippet = log_content[start:end].strip()
+                        # We use a combined ID to ensure uniqueness and matchability
+                        evidence_ids.append(f"LOG-{h['id']}-{sig.upper().replace(' ', '_')}")
         
         if metric_score > 0:
             for m in (h.get("required_metrics") or []):
                 if m in anomalies:
+                    # Directly link this specific anomaly to this hypothesis
                     evidence_ids.append(f"METRIC-{m}")
         
-        if ctx.get("recent_deploy"):
+        if deploy_score > 0:
             evidence_ids.append("EVENT-RECENT-DEPLOY")
 
         total = round(log_score + deploy_score + metric_score, 2)

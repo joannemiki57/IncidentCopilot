@@ -391,25 +391,36 @@ def _is_negated(log_lower: str, keyword: str) -> bool:
 def _score_categories(log_lower: str) -> dict[str, float]:
     """
     Score every category by summing up matched signal scores.
-    Uses word-boundary regex (FIX #2) and negation guard (FIX #3).
+    Injects a 'Recency Boost' (2.0x) for signals found in the last 25% of the text.
     """
     scores: dict[str, float] = {}
+    total_len = len(log_lower)
+    recency_threshold = total_len * 0.75
+
     for cat, config in CATEGORY_CONFIG.items():
         total = 0.0
         for pattern, score, is_regex in config["signals"]:
+            current_signal_score = 0.0
             if is_regex:
-                match = re.search(pattern, log_lower, re.IGNORECASE)
-                if match:
-                    # Extract the matched text for negation check
+                # Find all occurrences to check for recency
+                for match in re.finditer(pattern, log_lower, re.IGNORECASE):
                     matched_text = match.group(0)
                     if not _is_negated(log_lower, matched_text):
-                        total += score
+                        # Weight based on position: Recent window (last 25%) gets 2x boost
+                        boost = 2.0 if match.start() >= recency_threshold else 1.0
+                        current_signal_score = max(current_signal_score, score * boost)
             else:
                 if pattern in log_lower:
                     if not _is_negated(log_lower, pattern):
-                        total += score
+                        # Find last occurrence for recency check
+                        last_idx = log_lower.rfind(pattern)
+                        boost = 2.0 if last_idx >= recency_threshold else 1.0
+                        current_signal_score = max(current_signal_score, score * boost)
+            
+            total += current_signal_score
+
         if total > 0:
-            scores[cat] = round(min(total, 0.99), 4)   # cap at 0.99
+            scores[cat] = round(min(total, 0.99), 4)
     return scores
 
 

@@ -1,0 +1,26 @@
+{
+    "plan": {
+        "action_id": "SWITCH_STANDBY_API",
+        "title": "Failover to Standby Upstream API",
+        "target": "gateway/HDFS-egress",
+        "command": "vault kv get secret/api/standby | terraform apply -var 'active_api=standby'",
+        "undo_command": "terraform apply -var 'active_api=primary'",
+        "blast_radius": "Large",
+        "reversibility": "Partial",
+        "risk_score": 75,
+        "parameters": {
+            "service": "HDFS",
+            "prev_rev": "PREV_STABLE_01"
+        }
+    },
+    "safety_evaluation": {
+        "decision": "APPROVAL REQUIRED (Expert Panel)",
+        "approval_level": "L2/L3 Senior Engineer",
+        "approval_required": true,
+        "risk_level": "High",
+        "slack_payload": {
+            "decision": "APPROVAL REQUIRED (Expert Panel)",
+            "action": "Failover to Standby Upstream API"
+        }
+    }
+}

@@ -1,0 +1,45 @@
+[
+    {
+        "evidence_id": "METRIC-NETWORK_EGRESS_ERROR_RATE",
+        "category": "SUPPORT",
+        "signal_name": "network.egress.error_rate",
+        "content": "Network Egress Error Rate rose 45.0x",
+        "observed_at": "Unknown",
+        "delta_ratio": 45.0,
+        "baseline_desc": "24h trailing avg",
+        "policy_desc": "Network Threshold",
+        "drilldown_url": "grafana://metrics?query=network.egress.error_rate&orgId=1&from=now-1h",
+        "aggregation_info": {},
+        "weakens_hypothesis": null
+    },
+    {
+        "evidence_id": "METRIC-CPU_USAGE",
+        "category": "CONTEXT",
+        "signal_name": "cpu.usage",
+        "content": "Cpu Usage dropped to 0.7x",
+        "observed_at": "Unknown",
+        "delta_ratio": 0.6666666666666666,
+        "baseline_desc": "24h trailing avg",
+        "policy_desc": "Normal range",
+        "drilldown_url": "grafana://metrics?query=cpu.usage&orgId=1&from=now-1h",
+        "aggregation_info": {},
+        "weakens_hypothesis": null
+    },
+    {
+        "evidence_id": "LOG-831827d0ca33",
+        "category": "SUPPORT",
+        "signal_name": "error_log",
+        "content": "Service connection failure: '...'",
+        "observed_at": "Unknown",
+        "delta_ratio": 1.0,
+        "baseline_desc": "N/A",
+        "policy_desc": "Error signal threshold monitoring",
+        "drilldown_url": "kibana://logs/viewer?template_id=831827d0ca33&time=now-15m",
+        "aggregation_info": {
+            "count": 1,
+            "first_seen": "Unknown",
+            "impact_service": "HDFS"
+        },
+        "weakens_hypothesis": null
+    }
+]

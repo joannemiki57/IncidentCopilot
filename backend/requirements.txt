@@ -1,0 +1,10 @@
+# Incident Copilot — backend (live mode wrapper)
+#
+# Only the minimum needed to run backend/server.py. The existing engine
+# modules (incident_triage_poc, incident_rca_engine, ...) have no runtime
+# deps beyond the standard library, so nothing else needs to be pinned
+# here. If you add numpy / pandas etc. to an engine later, append them.
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.32,<1.0
+pydantic>=2.8,<3.0

@@ -19,8 +19,11 @@ export function ActionPlan() {
   const actionPlan = useIncidentStore((s) => s.analysisResult?.actionPlan)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
 
-  if (isAnalyzing) return <ActionPlanSkeleton />
-  if (!actionPlan || actionPlan.length === 0) return null
+  // 라이브 스트림: action 데이터가 없으면 skeleton (분석 중일 때만), 있으면 바로 렌더.
+  if (!actionPlan || actionPlan.length === 0) {
+    if (isAnalyzing) return <ActionPlanSkeleton />
+    return null
+  }
 
   // urgency 별 그룹핑. 빈 그룹은 아래에서 렌더 생략.
   const grouped = {

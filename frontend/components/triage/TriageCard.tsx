@@ -10,9 +10,14 @@ export function TriageCard() {
   const triage = useIncidentStore((s) => s.analysisResult?.triage)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
 
-  // 분석 중이면 skeleton. 결과 없고 대기 상태면 렌더 자체를 생략한다.
-  if (isAnalyzing) return <TriageCardSkeleton />
-  if (!triage) return null
+  // stage-level 점진 렌더:
+  //   - triage 데이터 도착 → 실제 카드 (이후 stage 들이 스트리밍 중이어도 유지)
+  //   - 아직 도착 안 했는데 분석 진행 중 → skeleton
+  //   - 아무것도 없으면 렌더 생략
+  if (!triage) {
+    if (isAnalyzing) return <TriageCardSkeleton />
+    return null
+  }
 
   return (
     <Card className="relative overflow-hidden">

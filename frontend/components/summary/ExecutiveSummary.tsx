@@ -21,8 +21,11 @@ export function ExecutiveSummary() {
   const [copied, setCopied] = useState(false)
   const [sent, setSent] = useState(false)
 
-  if (isAnalyzing) return <ExecutiveSummarySkeleton />
-  if (!summary) return null
+  // summary stage 가 오기 전까진 skeleton, 도착하면 데이터 렌더.
+  if (!summary) {
+    if (isAnalyzing) return <ExecutiveSummarySkeleton />
+    return null
+  }
 
   const handleCopy = async () => {
     // Slack / 문서 붙여넣기 용도로 가볍게 Markdown 형태. triage 가 아직 안 들어왔을 때도 터지지 않게 fallback.

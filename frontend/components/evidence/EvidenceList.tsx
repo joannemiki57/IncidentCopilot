@@ -16,8 +16,11 @@ export function EvidenceList() {
   const selectedHypothesisId = useIncidentStore((s) => s.selectedHypothesisId)
   const isAnalyzing = useIncidentStore((s) => s.isAnalyzing)
 
-  if (isAnalyzing) return <EvidenceListSkeleton />
-  if (!evidence || evidence.length === 0) return null
+  // stage-level skeleton: evidence 아직 안 왔고 분석 중이면 자리 유지.
+  if (!evidence || evidence.length === 0) {
+    if (isAnalyzing) return <EvidenceListSkeleton />
+    return null
+  }
 
   // 선택된 가설이 있으면 그 가설의 evidenceIds 만 강조 대상.
   // 선택된 가설 없음 → highlightedIds 가 빈 Set 이고, EvidenceItem 에서 isSelectionActive=false 로 흐르게 된다.

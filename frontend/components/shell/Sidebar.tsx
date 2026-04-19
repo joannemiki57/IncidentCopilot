@@ -22,6 +22,9 @@ interface ScenarioEntry {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   // Pinned "newest" style for the live-pipeline entry.
   isLive?: boolean
+  // 프리컴파일된 JSON fixture 경로 (textarea → SSE 가 아닌 static loader).
+  // 발표/스크린샷/오프라인 시연용으로 남겨둔 데모 시나리오.
+  isDemo?: boolean
 }
 
 // Sidebar navigation — clicking a scenario kicks off the same analyze flow as
@@ -40,18 +43,21 @@ const SCENARIOS: ScenarioEntry[] = [
     label: "DB saturation",
     sub: "Connection pool exhaustion",
     icon: Database,
+    isDemo: true,
   },
   {
     hint: "hdfs-failure",
     label: "HDFS DataNode",
     sub: "Block replication timeout",
     icon: HardDrive,
+    isDemo: true,
   },
   {
     hint: "bgl-hardware",
     label: "BGL hardware",
     sub: "Kernel parity error",
     icon: Radar,
+    isDemo: true,
   },
 ]
 
@@ -140,6 +146,11 @@ export function Sidebar() {
                       <span className="inline-flex items-center gap-1 rounded-full bg-[--color-success]/15 px-1.5 py-[1px] text-[9px] uppercase tracking-wider text-[--color-success]">
                         <CircleDot className="size-2" />
                         live
+                      </span>
+                    )}
+                    {entry.isDemo && (
+                      <span className="inline-flex items-center rounded-full bg-muted/60 px-1.5 py-[1px] text-[9px] uppercase tracking-wider text-muted-foreground">
+                        demo
                       </span>
                     )}
                   </div>

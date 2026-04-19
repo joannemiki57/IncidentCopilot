@@ -309,12 +309,21 @@ CATEGORY_CONFIG: dict[str, dict] = {
             ("unknown lease", 0.80, False), ("unable to qualify", 0.75, False),
         ],
     },
+    "Recovery_Signal": {
+        "default_severity": "P4 (Low)",
+        "signals": [
+            ("status: ok", 0.98, False), ("status: green", 0.95, False),
+            ("recovered", 0.90, True), (r"\bhealth\b", 0.85, True),
+            (r"\bheartbeat\b", 0.85, True), ("all systems normal", 0.95, False),
+            ("cleared", 0.80, True), ("resolved", 0.85, True),
+        ],
+    },
     "System_Info/Routine": {
         "default_severity": "P4 (Low)",
         "signals": [
             ("synchronized to", 0.90, False), ("no topology change", 0.90, False),
             ("no configuration change", 0.90, False), ("session opened", 0.85, False),
-            ("session closed", 0.85, False),
+            ("session closed", 0.85, False), ("heartbeat", 0.80, False),
         ],
     },
     "System_Info": {
@@ -463,7 +472,13 @@ def incident_triage(log_message: str, structured: dict = None, tracker: Persiste
     scores = _score_categories(log_lower)
     detected_categories = sorted(scores, key=scores.get, reverse=True)
 
-    primary_category  = detected_categories[0] if detected_categories else "Unknown_Error"
+    # Recovery Priority: If a recovery signal is present and strong, it can override stale errors.
+    has_recovery = "Recovery_Signal" in scores and scores["Recovery_Signal"] > 0.8
+
+    primary_category  = detected_categories[0] if detected_categories else "System_Info"
+    if has_recovery:
+        primary_category = "Recovery_Signal"
+        
     primary_confidence = scores.get(primary_category, 0.50)
 
     # ── 3. Compound Scenario Detection  ───────────────────────────────────

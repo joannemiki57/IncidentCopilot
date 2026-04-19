@@ -1,6 +1,7 @@
 "use client"
 
-import { Check, ChevronDown, Loader2, Play, Terminal } from "lucide-react"
+import { Activity, Check, ChevronDown, Eye, EyeOff, Loader2, Play, Radio, Terminal } from "lucide-react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -72,12 +73,29 @@ export default function LogInput() {
   const analyzeStream = useIncidentStore((s) => s.analyzeStream)
   const completedStages = useIncidentStore((s) => s.completedStages)
   const error = useIncidentStore((s) => s.error)
+  const lastAnalyzedAt = useIncidentStore((s) => s.lastAnalyzedAt)
+
+  // Watcher
+  const isWatchingLogs = useIncidentStore((s) => s.isWatchingLogs)
+  const watchPath = useIncidentStore((s) => s.watchPath)
+  const startWatchingLogs = useIncidentStore((s) => s.startWatchingLogs)
+  const stopWatchingLogs = useIncidentStore((s) => s.stopWatchingLogs)
+
+  const [inputPath, setInputPath] = useState(watchPath || "storage/logs/app.log")
 
   // Play 버튼은 라이브 파이프라인으로 직결된다. textarea 내용이 FastAPI 로 흘러가서
   // stage 단위로 카드들이 채워진다. 기존 Try sample 드롭다운(데모 JSON 로더)은 건드리지 않음.
   const handleAnalyze = () => {
     if (isAnalyzing || logInput.trim().length === 0) return
     void analyzeStream()
+  }
+
+  const handleToggleWatch = () => {
+    if (isWatchingLogs) {
+      stopWatchingLogs()
+    } else {
+      void startWatchingLogs(inputPath)
+    }
   }
 
   const handleSample = (hint: ScenarioHint) => {
@@ -102,29 +120,71 @@ export default function LogInput() {
               Paste raw logs or pick a sample scenario to stream through the pipeline
             </CardDescription>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center overflow-hidden rounded-md border bg-background/50 focus-within:ring-1 focus-within:ring-primary/40">
+              <div className="flex items-center px-2.5 text-muted-foreground">
+                {isWatchingLogs ? (
+                  <Activity className="size-3.5 animate-pulse text-[--color-success]" />
+                ) : (
+                  <Eye className="size-3.5" />
+                )}
+              </div>
+              <input
+                type="text"
+                value={inputPath}
+                onChange={(e) => setInputPath(e.target.value)}
+                placeholder="Watcher path..."
+                className="h-8 w-40 bg-transparent py-1 text-[11px] font-mono outline-none placeholder:text-muted-foreground/50 sm:w-56"
+                disabled={isWatchingLogs}
+              />
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                disabled={isAnalyzing}
-                aria-label="Try a sample scenario"
+                onClick={handleToggleWatch}
+                className={`h-8 rounded-none border-l px-3 text-[10px] font-bold uppercase tracking-wider ${
+                  isWatchingLogs
+                    ? "text-[--color-critical] hover:bg-[--color-critical]/10"
+                    : "text-primary hover:bg-primary/10"
+                }`}
               >
-                Try sample
-                <ChevronDown className="size-4" />
+                {isWatchingLogs ? (
+                  <>
+                    <EyeOff className="mr-1.5 size-3" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Radio className="mr-1.5 size-3" />
+                    Watch
+                  </>
+                )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {SAMPLE_ORDER.map((hint) => (
-                <DropdownMenuItem
-                  key={hint}
-                  onClick={() => handleSample(hint)}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isAnalyzing}
+                  aria-label="Try a sample scenario"
                 >
-                  {SAMPLE_LABELS[hint]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  Try sample
+                  <ChevronDown className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {SAMPLE_ORDER.map((hint) => (
+                  <DropdownMenuItem
+                    key={hint}
+                    onClick={() => handleSample(hint)}
+                  >
+                    {SAMPLE_LABELS[hint]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -148,6 +208,12 @@ export default function LogInput() {
               ? `${logInput.split(/\n/).length} lines · ${logInput.length} chars`
               : "ready for input"}
           </span>
+          {lastAnalyzedAt && (
+            <span className="flex items-center gap-1 text-primary">
+              <Check className="size-3" />
+              Analyze finished at {lastAnalyzedAt}
+            </span>
+          )}
           {(isAnalyzing || completedStages.length > 0) && (
             <span className="flex items-center gap-1.5">
               {STAGE_ORDER.map(({ key, label }) => {

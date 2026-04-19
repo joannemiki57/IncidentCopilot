@@ -62,40 +62,71 @@ ${summary.prevention}
     setTimeout(() => setSent(false), 2000)
   }
 
+  const isHealthy = triage?.severity === "P4"
+
   return (
-    <Card>
+    <Card className={isHealthy ? "border-[--color-success]/30 bg-[--color-success]/5" : ""}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <CardTitle className="text-base">Executive summary</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">
+                {isHealthy ? "System healthy" : "Executive summary"}
+              </CardTitle>
+              {isHealthy && (
+                <div className="flex items-center gap-1.5 rounded-full bg-[--color-success]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[--color-success]">
+                  <ShieldCheck className="size-3" />
+                  Operational
+                </div>
+              )}
+            </div>
             {hitlStatus && <HitlBadge status={hitlStatus} />}
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={handleCopy}>
-              <Copy className="h-3.5 w-3.5 mr-1.5" />
-              {copied ? "Copied!" : "Copy"}
-            </Button>
-            <Button variant="default" size="sm" onClick={handleSendSlack}>
-              <Send className="h-3.5 w-3.5 mr-1.5" />
-              {sent ? "Sent!" : "Send to Slack"}
-            </Button>
+            {!isHealthy && (
+              <>
+                <Button variant="outline" size="sm" onClick={handleCopy}>
+                  <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button variant="default" size="sm" onClick={handleSendSlack}>
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  {sent ? "Sent!" : "Send to Slack"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <h3 className="text-base font-semibold leading-snug">
-            {summary.headline}
+            {isHealthy ? "System recovered and all heartbeats are normal." : summary.headline}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <SummarySection label="Impact" content={summary.impact} />
-            <SummarySection
-              label="Suspected cause"
-              content={summary.suspectedCause}
-            />
-            <SummarySection label="Mitigations" content={summary.mitigations} />
-            <SummarySection label="Prevention" content={summary.prevention} />
+            {isHealthy ? (
+              <div className="col-span-2 flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-4 rounded-full bg-[--color-success]/10 p-4">
+                  <ShieldCheck className="size-10 text-[--color-success]" />
+                </div>
+                <h4 className="text-lg font-bold">No Active Incidents</h4>
+                <p className="max-w-md text-sm text-muted-foreground mt-2">
+                  The latest log stream indicates that services have recovered. 
+                  Continuous health checks are currently passing with status: OK.
+                </p>
+              </div>
+            ) : (
+              <>
+                <SummarySection label="Impact" content={summary.impact} />
+                <SummarySection
+                  label="Suspected cause"
+                  content={summary.suspectedCause}
+                />
+                <SummarySection label="Mitigations" content={summary.mitigations} />
+                <SummarySection label="Prevention" content={summary.prevention} />
+              </>
+            )}
           </div>
         </div>
       </CardContent>

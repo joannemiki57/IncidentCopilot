@@ -35,10 +35,18 @@ interface IncidentStore {
   // 라이브 스트림 전용 상태 (데모 경로에선 항상 빈 배열 / null)
   completedStages: StageName[]
   runId: string | null
+  lastAnalyzedAt: string | null
+  lastObservedState: "healthy" | "error" | null
 
   // UI 상호작용 상태
   selectedHypothesisId: string | null
   selectHypothesis: (id: string | null) => void
+
+  // 로그 감시(Watch) 상태
+  isWatchingLogs: boolean
+  watchPath: string
+  startWatchingLogs: (path: string) => Promise<void>
+  stopWatchingLogs: () => void
 
   // 파생 상태: 선택된 가설의 evidenceIds
   getHighlightedEvidenceIds: () => string[]
@@ -66,6 +74,8 @@ const initialState: Pick<
   selectedHypothesisId: null,
   completedStages: [],
   runId: null,
+  lastAnalyzedAt: null,
+  lastObservedState: null,
 }
 
 // SSE 프레임 파싱 — 하나의 프레임은 공백 라인(\n\n) 으로 구분되고, 각 프레임은
@@ -168,6 +178,8 @@ function mergeStageIntoRaw(
 
 export const useIncidentStore = create<IncidentStore>((set, get) => ({
   ...initialState,
+  isWatchingLogs: false,
+  watchPath: "",
 
   setLogInput: (text) => set({ logInput: text }),
 
@@ -194,6 +206,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       selectedHypothesisId: null,
       completedStages: [],
       runId: null,
+      lastAnalyzedAt: null,
     })
 
     try {
@@ -231,6 +244,7 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       set({
         analysisResult: parsed.data,
         isAnalyzing: false,
+        lastAnalyzedAt: new Date().toLocaleTimeString(),
       })
     } catch (err) {
       set({
@@ -255,9 +269,10 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       isAnalyzing: true,
       error: null,
       selectedHypothesisId: null,
-      analysisResult: null,
+      analysisResult: null, // Clear existing result to show skeletons
       completedStages: [],
       runId: null,
+      lastAnalyzedAt: null,
     })
 
     // 이 클로저가 모든 stage 의 raw 상태를 들고 있는 "accumulator". React 렌더 사이에
@@ -357,15 +372,110 @@ export const useIncidentStore = create<IncidentStore>((set, get) => ({
       }
 
       // 스트림이 끝나는 시점엔 이미 마지막 stage 까지 반영돼 있음. 마지막으로
-      // 최종 조립을 한 번 더 시도해 schema 통과 가능성이 생긴 필드를 반영.
+      // 최종 조립 반영 및 분석 완료 시간 기록
       reassemble()
-      set({ isAnalyzing: false })
+      set({ 
+        isAnalyzing: false, 
+        lastAnalyzedAt: new Date().toLocaleTimeString() 
+      })
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : String(err),
         isAnalyzing: false,
       })
     }
+  },
+
+  startWatchingLogs: async (path: string) => {
+    if (get().isWatchingLogs) return
+    
+    const controller = new AbortController()
+    set({ isWatchingLogs: true, watchPath: path, error: null })
+
+    // 전역 객체에 저장해 두었다가 stop 시점에 호출
+    ;(window as any)._logWatchAbort = controller
+
+    let buffer = ""
+    try {
+      const response = await fetch(`/api/logs/stream?path=${encodeURIComponent(path)}`, {
+        signal: controller.signal,
+        headers: { Accept: "text/event-stream" },
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Watch failed: ${response.statusText}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const { frames, remainder } = parseSseFrames(buffer)
+        buffer = remainder
+
+        for (const frame of frames) {
+          if (frame.event === "log_line") {
+            const data = JSON.parse(frame.data) as { text: string }
+            const line = data.text
+
+            set((state) => {
+              const lines = state.logInput.split("\n")
+              // 로그가 너무 많이 쌓이지 않도록 최대 200줄 유지 (Rolling Buffer)
+              const newLines = [...lines, line].slice(-200)
+              return { logInput: newLines.join("\n") }
+            })
+
+            // 에러 패턴 감지 시 자동 분석 트리거
+            const lowerLine = line.toLowerCase()
+            const isErrorLine =
+              lowerLine.includes("error") ||
+              lowerLine.includes("fatal") ||
+              lowerLine.includes("exception") ||
+              lowerLine.includes("fail") ||
+              lowerLine.includes("critical")
+
+            const isHealthyLine =
+              lowerLine.includes("status: ok") ||
+              lowerLine.includes("heartbeat") ||
+              lowerLine.includes("recovered") ||
+              lowerLine.includes("normal")
+
+            const currentState = isErrorLine ? "error" : isHealthyLine ? "healthy" : null
+            const prevState = get().lastObservedState
+
+            // 상태가 변했을 때 (예: healthy -> error 또는 error -> healthy) 자동 분석 실행
+            if (currentState && currentState !== prevState && !get().isAnalyzing) {
+              console.log(`State changed: ${prevState} -> ${currentState}. Triggering analysis...`)
+              set({ lastObservedState: currentState })
+              
+              // 약간의 로그가 더 쌓이길 기다렸다가(500ms) 분석 시작
+              setTimeout(() => {
+                if (!get().isAnalyzing) void get().analyzeStream()
+              }, 500)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        set({ error: `Log watch error: ${err instanceof Error ? err.message : String(err)}` })
+      }
+    } finally {
+      set({ isWatchingLogs: false })
+    }
+  },
+
+  stopWatchingLogs: () => {
+    const abort = (window as any)._logWatchAbort
+    if (abort) {
+      abort.abort()
+      ;(window as any)._logWatchAbort = null
+    }
+    set({ isWatchingLogs: false })
   },
 
   reset: () => set({ ...initialState }),

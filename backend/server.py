@@ -379,3 +379,45 @@ async def analyze_stream(req: AnalyzeRequest) -> StreamingResponse:
             "Connection": "keep-alive",
         },
     )
+
+
+@app.get("/api/logs/stream")
+async def stream_logs(path: str) -> StreamingResponse:
+    """
+    Stream lines from a local file using SSE.
+    """
+    # 1. Try absolute or current working directory
+    abs_path = os.path.abspath(path)
+    if not os.path.exists(abs_path):
+        # 2. Try relative to REPO_ROOT (common for data/test.log)
+        root_rel_path = os.path.join(REPO_ROOT, path)
+        if os.path.exists(root_rel_path):
+            abs_path = root_rel_path
+        else:
+            raise HTTPException(status_code=404, detail=f"File not found: {path} (checked {abs_path} and {root_rel_path})")
+
+    async def _tail_file_generator():
+        # Open file and seek to the end to start watching new lines
+        with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+            f.seek(0, os.SEEK_END)
+            yield _sse("log_started", {"path": abs_path, "time": _now_iso()})
+            
+            while True:
+                line = f.readline()
+                if not line:
+                    await asyncio.sleep(0.2) # Wait for new content to arrive
+                    continue
+                
+                yield _sse("log_line", {"text": line, "time": _now_iso()})
+                # Small yield to keep loop responsive
+                await asyncio.sleep(0)
+
+    return StreamingResponse(
+        _tail_file_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
